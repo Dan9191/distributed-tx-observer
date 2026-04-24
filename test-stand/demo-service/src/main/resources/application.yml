@@ -1,0 +1,24 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: demo-service
+
+# Настройки регистрации шагов в observer-service.
+# OBSERVER_SERVICE_URL переопределяется через env в docker-compose.
+observer:
+  service-url: ${OBSERVER_SERVICE_URL:http://localhost:8033}
+  service-name: demo-service
+  transactions:
+    - name: CreateOrder
+      steps:
+        - ValidateCart
+        - ReserveStock
+        - ChargePayment
+        - ConfirmOrder
+    - name: ProcessPayment
+      steps:
+        - ValidateCard
+        - AuthorizePayment
+        - CapturePayment

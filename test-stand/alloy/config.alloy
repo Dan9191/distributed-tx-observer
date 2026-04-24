@@ -1,0 +1,54 @@
+// Grafana Alloy — конфигурация сбора логов для локального стенда.
+//
+// Схема работы:
+//   Docker-контейнеры с меткой logging=true
+//     → loki.source.docker (читает stdout/stderr)
+//     → loki.write (отправляет в Loki)
+//
+// Чтобы логи сервиса попали в Loki, контейнер должен иметь Docker-метки:
+//   logging: "true"
+//   app: "<имя сервиса>"  — становится label'ом job в Loki
+
+// Обнаруживаем Docker-контейнеры
+discovery.docker "services" {
+  host             = "npipe:////./pipe/docker_engine"
+  refresh_interval = "5s"
+
+  filter {
+    name   = "label"
+    values = ["logging=true"]
+  }
+}
+
+// Добавляем label'ы из Docker-меток контейнера
+discovery.relabel "add_labels" {
+  targets = discovery.docker.services.targets
+
+  // job берём из Docker-метки app (например, "demo-service")
+  rule {
+    source_labels = ["__meta_docker_container_label_app"]
+    target_label  = "job"
+  }
+
+  // container — имя контейнера без слэша
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/?(.*)"
+    target_label  = "container"
+  }
+}
+
+// Читаем логи из контейнеров
+loki.source.docker "docker_logs" {
+  host             = "npipe:////./pipe/docker_engine"
+  targets          = discovery.relabel.add_labels.output
+  forward_to       = [loki.write.local.receiver]
+  refresh_interval = "5s"
+}
+
+// Отправляем в Loki
+loki.write "local" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

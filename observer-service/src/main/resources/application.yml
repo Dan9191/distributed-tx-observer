@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: observer-service
+  datasource:
+    url: ${DATASOURCE_URL:jdbc:postgresql://localhost:5432/rag?currentSchema=observer}
+    username: ${DATASOURCE_NAME:rag_user}
+    password: ${DATASOURCE_PASSWORD:rag_pass}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: 8033
+
+loki:
+  base-url: ${LOKI_BASE_URL:http://localhost:3100}
+  # LogQL stream selector: ограничивает набор потоков перед фильтрацией.
+  # По умолчанию — все потоки с непустым label job.
+  stream-selector: '{job=~".+"}'
+  lookback-hours: 24

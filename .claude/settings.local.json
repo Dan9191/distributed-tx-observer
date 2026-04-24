@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep *)",
+      "Bash(npm create *)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(docker compose *)",
+      "Bash(curl -s \"http://localhost:3100/loki/api/v1/labels\")",
+      "Bash(python -m json.tool)",
+      "Bash(curl *)",
+      "Bash(docker exec *)"
+    ]
+  }
+}
