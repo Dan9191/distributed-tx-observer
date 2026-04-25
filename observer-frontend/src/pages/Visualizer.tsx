@@ -91,11 +91,13 @@ export default function Visualizer() {
       setVizData(data)
       setNodes(prev => prev.map(node => {
         const step = data.steps.find(s => String(s.instanceId) === node.id)
+        if (!step) return node
         return {
           ...node,
           data: {
             ...node.data,
-            color: LOG_LEVEL_COLOR[step?.logLevel ?? 'none'],
+            color: LOG_LEVEL_COLOR[step.logLevel],
+            logCount: step.logs.length,
           },
         }
       }))
