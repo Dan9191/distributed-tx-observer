@@ -54,7 +54,7 @@ public class LokiLogQueryAdapter implements LogQueryPort {
         long endNs = toNanos(now);
         long startNs = toNanos(now.minus(properties.getLookbackHours(), ChronoUnit.HOURS));
 
-        log.info("Loki query: {}", query);
+        log.debug("Loki query: {}", query);
 
         try {
             // Передаём query через именованный плейсхолдер {q}, иначе UriBuilder
@@ -69,14 +69,8 @@ public class LokiLogQueryAdapter implements LogQueryPort {
                     .retrieve()
                     .body(String.class);
 
-            log.info("Loki raw response: {}", body);
-
             Map<String, List<LogEntry>> result = parseResponse(body);
-            log.info("Loki parsed: {} steps, entries per step: {}",
-                    result.size(),
-                    result.entrySet().stream()
-                            .map(e -> e.getKey() + "=" + e.getValue().size())
-                            .toList());
+            log.debug("Loki returned {} steps for operationId={}", result.size(), operationId);
             return result;
         } catch (Exception e) {
             log.warn("Loki query failed [operationId={}, tx={}]: {}", operationId, transactionName, e.getMessage());
@@ -131,19 +125,11 @@ public class LokiLogQueryAdapter implements LogQueryPort {
         JsonNode root = objectMapper.readTree(body);
         JsonNode results = root.path("data").path("result");
 
-        log.info("Loki streams returned: {}", results.size());
-
         Map<String, List<LogEntry>> byStep = new HashMap<>();
 
         for (JsonNode stream : results) {
-            JsonNode values = stream.path("values");
-            log.info("Stream labels: {}, lines: {}", stream.path("stream"), values.size());
-            // Первые 2 строки печатаем сырыми — чтобы видеть реальный формат
-            int preview = 0;
-            for (JsonNode value : values) {
-                String logLine = value.get(1).asText();
-                if (preview++ < 2) log.info("Sample log line: {}", logLine);
-                parseLogLine(logLine, byStep);
+            for (JsonNode value : stream.path("values")) {
+                parseLogLine(value.get(1).asText(), byStep);
             }
         }
 

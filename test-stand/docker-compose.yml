@@ -1,6 +1,6 @@
 services:
 
-  # ── PostgreSQL — хранит шаблоны и шаги для observer-service ────────────────
+  # ── PostgreSQL ───────────────────────────────────────────────────────────────
   postgres:
     image: postgres:16
     container_name: observer-postgres
@@ -19,7 +19,7 @@ services:
       timeout: 5s
       retries: 10
 
-  # ── Loki — хранит структурированные логи от demo-сервисов ──────────────────
+  # ── Loki ─────────────────────────────────────────────────────────────────────
   loki:
     image: grafana/loki:3.2.0
     container_name: observer-loki
@@ -36,8 +36,48 @@ services:
       timeout: 5s
       retries: 10
 
-  # ── Demo-сервис: симулирует распределённые транзакции, пишет JSON-логи ──────
-  # Логи отправляются напрямую в Loki через loki4j (без Alloy).
+  # ── Observer Service ─────────────────────────────────────────────────────────
+  observer-service:
+    build:
+      context: ..
+      dockerfile: observer-service/Dockerfile
+    container_name: observer-service
+    ports:
+      - "8033:8033"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
+    environment:
+      DATASOURCE_URL: jdbc:postgresql://postgres:5432/rag?currentSchema=observer
+      DATASOURCE_NAME: rag_user
+      DATASOURCE_PASSWORD: rag_pass
+      LOKI_BASE_URL: http://loki:3100
+    volumes:
+      - ../observer-service/build/libs/observer-service-0.0.1-SNAPSHOT.jar:/app/app.jar
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8033' 2>/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  # ── Observer Frontend ────────────────────────────────────────────────────────
+  observer-frontend:
+    build:
+      context: ../observer-frontend
+      dockerfile: Dockerfile
+    container_name: observer-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      observer-service:
+        condition: service_healthy
+    volumes:
+      - ../observer-frontend/dist:/usr/share/nginx/html
+
+  # ── Demo Service ─────────────────────────────────────────────────────────────
   demo-service:
     build: ./demo-service
     container_name: observer-demo-service
@@ -46,9 +86,13 @@ services:
     depends_on:
       loki:
         condition: service_healthy
+      observer-service:
+        condition: service_healthy
     environment:
-      OBSERVER_SERVICE_URL: http://host.docker.internal:8033
+      OBSERVER_SERVICE_URL: http://observer-service:8033
       LOKI_URL: http://loki:3100
+    volumes:
+      - ./demo-service/build/libs/demo-service-0.0.1-SNAPSHOT.jar:/app/app.jar
 
 volumes:
   postgres_data:

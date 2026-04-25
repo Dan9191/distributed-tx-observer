@@ -18,7 +18,7 @@ Post-mortem визуализация распределённых транзак
 
 ```bash
 cd test-stand
-docker-compose up -d
+docker-compose up -d --build
 ```
 
 ### 2. observer-service
@@ -80,3 +80,59 @@ observer:
 ```
 
 Логи обогащаются через MDC: `operationId`, `transactionName`, `stepName`, `serviceName`.
+
+Запуск с нуля                                                                                                                                                                                                                        
+Требования
+
+- Docker Desktop (запущен)
+- Java 21 JDK
+- Node.js + npm
+- Gradle (для demo-service)
+- Git Bash (или WSL)
+
+  ---
+Первый запуск
+
+# 1. Перейти в корень репо
+cd D:/rep2/distributed-tx-monitor
+
+# 2. Собрать всё и поднять контейнеры
+./build.sh
+
+Скрипт последовательно:
+1. Собирает observer-service JAR через ./gradlew
+2. Собирает demo-service JAR через gradle
+3. Собирает фронтенд через npm ci && npm run build
+4. Запускает docker compose up -d
+
+Подождать ~1–2 минуты пока все healthcheck'и пройдут.
+
+  ---
+Если build.sh уже запускался (артефакты есть)
+
+cd D:/rep2/distributed-tx-monitor/test-stand
+docker compose up -d
+
+  ---
+Остановить
+
+cd D:/rep2/distributed-tx-monitor/test-stand
+docker compose down
+
+Данные PostgreSQL и Loki сохраняются (named volumes). Чтобы удалить всё включая данные:
+docker compose down -v
+
+  ---
+Проверка что всё поднялось
+
+docker compose ps
+
+Все сервисы должны быть healthy или running. Затем:
+
+- Фронтенд: http://localhost:5173
+- Observer API: http://localhost:8033/api/v1/transactions
+- Demo-сервис: http://localhost:8081
+
+примеры запросов
+$ curl -X POST "http://localhost:8081/simulate/create-order?scenario=payment-error"
+$ curl -X POST "http://localhost:8081/simulate/create-order?scenario=success"

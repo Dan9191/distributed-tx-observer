@@ -270,7 +270,7 @@ docker-compose: demo-service запускается с Docker-метками `lo
 | 2 | observer-service: CRUD шаблонов | ✅ |
 | 3 | observer-frontend: редактор шаблона (React Flow) | ✅ |
 | 4 | observer-service: LokiLogQueryAdapter + эндпоинт визуализации | ✅ |
-| 5 | observer-frontend: страница визуализации Visualizer.tsx | ❌ |
+| 5 | observer-frontend: страница визуализации Visualizer.tsx | ✅ |
 | 6 | test-stand: demo-service с правильным форматом логов | ✅ |
 
 ---
