@@ -1,0 +1,23 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: order-service
+
+# Настройки регистрации шагов в order-service.
+observer:
+  service-url: ${OBSERVER_SERVICE_URL:http://localhost:8033}
+  service-name: order-service
+  transactions:
+    - name: CreateOrder
+      steps:
+        - ValidateCart
+        - ReserveStock
+        - ChargePayment
+        - ConfirmOrder
+    - name: ProcessPayment
+      steps:
+        - ValidateCard
+        - AuthorizePayment
+        - CapturePayment

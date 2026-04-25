@@ -1,15 +1,14 @@
 server:
-  port: 8081
+  port: 8085
 
 spring:
   application:
-    name: demo-service
+    name: notification-service
 
-# Настройки регистрации шагов в observer-service.
-# OBSERVER_SERVICE_URL переопределяется через env в docker-compose.
+# Настройки регистрации шагов в payment-service.
 observer:
   service-url: ${OBSERVER_SERVICE_URL:http://localhost:8033}
-  service-name: demo-service
+  service-name: notification-service
   transactions:
     - name: CreateOrder
       steps:

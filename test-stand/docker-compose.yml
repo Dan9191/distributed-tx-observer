@@ -77,14 +77,14 @@ services:
     volumes:
       - ../observer-frontend/dist:/usr/share/nginx/html
 
-  # ── Demo Service ─────────────────────────────────────────────────────────────
-  demo-service:
+  # ── Order Service ─────────────────────────────────────────────────────────────
+  order-service:
     build:
       context: ..
-      dockerfile: demo-service/Dockerfile
-    container_name: observer-demo-service
+      dockerfile: demo-services/order-service/Dockerfile
+    container_name: demo-order-service
     ports:
-      - "8081:8081"
+      - "8082:8082"
     depends_on:
       loki:
         condition: service_healthy
@@ -94,7 +94,65 @@ services:
       OBSERVER_SERVICE_URL: http://observer-service:8033
       LOKI_URL: http://loki:3100
     volumes:
-      - ../demo-service/build/libs/demo-service-0.0.1-SNAPSHOT.jar:/app/app.jar
+      - ../demo-services/order-service/build/libs/order-service-0.0.1-SNAPSHOT.jar:/app/app.jar
+
+  # ── Payment Service ─────────────────────────────────────────────────────────────
+  payment-service:
+    build:
+      context: ..
+      dockerfile: demo-services/payment-service/Dockerfile
+    container_name: demo-payment-service
+    ports:
+      - "8083:8083"
+    depends_on:
+      loki:
+        condition: service_healthy
+      observer-service:
+        condition: service_healthy
+    environment:
+      OBSERVER_SERVICE_URL: http://observer-service:8033
+      LOKI_URL: http://loki:3100
+    volumes:
+      - ../demo-services/payment-service/build/libs/payment-service-0.0.1-SNAPSHOT.jar:/app/app.jar
+
+
+  # ── Inventory Service ─────────────────────────────────────────────────────────────
+  inventory-service:
+    build:
+      context: ..
+      dockerfile: demo-services/inventory-service/Dockerfile
+    container_name: demo-inventory-service
+    ports:
+      - "8084:8084"
+    depends_on:
+      loki:
+        condition: service_healthy
+      observer-service:
+        condition: service_healthy
+    environment:
+      OBSERVER_SERVICE_URL: http://observer-service:8033
+      LOKI_URL: http://loki:3100
+    volumes:
+      - ../demo-services/inventory-service/build/libs/inventory-service-0.0.1-SNAPSHOT.jar:/app/app.jar
+
+  # ── Notification Service ─────────────────────────────────────────────────────────────
+  notification-service:
+    build:
+      context: ..
+      dockerfile: demo-services/notification-service/Dockerfile
+    container_name: demo-notification-service
+    ports:
+      - "8085:8085"
+    depends_on:
+      loki:
+        condition: service_healthy
+      observer-service:
+        condition: service_healthy
+    environment:
+      OBSERVER_SERVICE_URL: http://observer-service:8033
+      LOKI_URL: http://loki:3100
+    volumes:
+      - ../demo-services/notification-service/build/libs/notification-service-0.0.1-SNAPSHOT.jar:/app/app.jar
 
 volumes:
   postgres_data:

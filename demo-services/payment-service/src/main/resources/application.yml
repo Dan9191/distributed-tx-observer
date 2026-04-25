@@ -1,0 +1,23 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: payment-service
+
+# Настройки регистрации шагов в payment-service.
+observer:
+  service-url: ${OBSERVER_SERVICE_URL:http://localhost:8033}
+  service-name: payment-service
+  transactions:
+    - name: CreateOrder
+      steps:
+        - ValidateCart
+        - ReserveStock
+        - ChargePayment
+        - ConfirmOrder
+    - name: ProcessPayment
+      steps:
+        - ValidateCard
+        - AuthorizePayment
+        - CapturePayment

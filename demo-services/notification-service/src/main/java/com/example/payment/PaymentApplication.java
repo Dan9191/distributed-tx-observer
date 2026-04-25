@@ -1,4 +1,4 @@
-package com.example.demo;
+package com.example.payment;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -14,9 +14,9 @@ import com.example.demo.config.ObserverProperties;
  */
 @SpringBootApplication
 @EnableConfigurationProperties(ObserverProperties.class)
-public class DemoServiceApplication {
+public class PaymentApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(DemoServiceApplication.class, args);
+        SpringApplication.run(PaymentApplication.class, args);
     }
 }

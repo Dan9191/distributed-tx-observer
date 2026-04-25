@@ -1,0 +1,36 @@
+<configuration>
+
+    <!-- Консольный вывод через logstash-logback-encoder (для отладки) -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeContext>false</includeContext>
+        </encoder>
+    </appender>
+
+    <!--
+      Прямая отправка в Loki через loki4j.
+      LOKI_URL задаётся через env (docker-compose: http://loki:3100).
+      Дефолт — localhost для запуска вне Docker.
+      MDC-поля (operationId, transactionName, stepName, serviceName) включены явно,
+      чтобы гарантировать их наличие как top-level полей JSON.
+    -->
+    <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+        <http>
+            <url>${LOKI_URL:-http://localhost:3100}/loki/api/v1/push</url>
+        </http>
+        <format>
+            <label>
+                <pattern>job=payment-service,level=%level</pattern>
+            </label>
+            <message>
+                <pattern>{"@timestamp":"%d{yyyy-MM-dd'T'HH:mm:ss.SSS}Z","level":"%level","message":"%message","operationId":"%X{operationId}","transactionName":"%X{transactionName}","stepName":"%X{stepName}","serviceName":"%X{serviceName}"}</pattern>
+            </message>
+        </format>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="LOKI"/>
+    </root>
+
+</configuration>
