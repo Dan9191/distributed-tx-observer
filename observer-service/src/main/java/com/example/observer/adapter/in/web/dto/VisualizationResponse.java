@@ -26,6 +26,8 @@ public class VisualizationResponse {
         private Double y;
         private String logLevel;
         private List<LogEntryDto> logs;
+        /** Тип узла: step | start | end. */
+        private String nodeType;
     }
 
     @Data

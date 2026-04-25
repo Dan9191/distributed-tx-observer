@@ -14,10 +14,15 @@ import '@xyflow/react/dist/style.css'
 
 import StepNode, { type StepNodeData } from '../components/StepNode'
 import GroupNode from '../components/GroupNode'
+import StartNode from '../components/StartNode'
+import EndNode from '../components/EndNode'
 import CustomEdge from '../components/CustomEdge'
-import { getTemplate, visualize, type VisualizationStep, type VisualizationResponse, type LogEntry, type GroupInstance } from '../api'
+import {
+  getTemplate, visualize,
+  type VisualizationStep, type VisualizationResponse, type LogEntry, type GroupInstance,
+} from '../api'
 
-const nodeTypes = { step: StepNode, group: GroupNode }
+const nodeTypes = { step: StepNode, group: GroupNode, start: StartNode, end: EndNode }
 const edgeTypes = { custom: CustomEdge }
 
 const LOG_LEVEL_COLOR: Record<string, string> = {
@@ -34,22 +39,16 @@ const LEVEL_BADGE: Record<string, string> = {
   none:  'bg-gray-50 text-gray-500 border border-gray-200',
 }
 
-/**
- * Post-mortem визуализация конкретного запуска транзакции.
- * Шаблон-граф загружается при открытии; после ввода operationId узлы
- * раскрашиваются по уровню лога. Клик на узел — боковая панель с логами.
- */
 export default function Visualizer() {
   const { name } = useParams<{ name: string }>()
   const navigate = useNavigate()
   const txName = name ? decodeURIComponent(name) : ''
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([])
-  const [edges, , onEdgesChange] = useEdgesState<Edge>([])
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
 
   const [operationId, setOperationId] = useState('')
   const [vizData, setVizData] = useState<VisualizationResponse | null>(null)
-  // Идентификатор выбранного экземпляра (строка = String(instanceId))
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
 
   const [templateLoading, setTemplateLoading] = useState(true)
@@ -89,9 +88,41 @@ export default function Visualizer() {
     try {
       const data = await visualize(operationId.trim(), txName)
       setVizData(data)
+
+      // Определяем активные узлы (logLevel != none)
+      const activeIds = new Set(
+        data.steps
+          .filter(s => s.logLevel !== 'none')
+          .map(s => String(s.instanceId)),
+      )
+
+      // Раскрашиваем step-узлы
       setNodes(prev => prev.map(node => {
         const step = data.steps.find(s => String(s.instanceId) === node.id)
         if (!step) return node
+
+        // Маркер start: активен если хотя бы один исходящий сосед активен
+        // Маркер end:   активен если хотя бы один входящий сосед активен
+        if (step.nodeType === 'start') {
+          const hasActiveSuccessor = data.edges.some(
+            e => String(e.fromInstanceId) === node.id && activeIds.has(String(e.toInstanceId)),
+          )
+          return {
+            ...node,
+            data: { ...node.data, color: hasActiveSuccessor ? LOG_LEVEL_COLOR.info : undefined },
+          }
+        }
+        if (step.nodeType === 'end') {
+          const hasActivePredecessor = data.edges.some(
+            e => String(e.toInstanceId) === node.id && activeIds.has(String(e.fromInstanceId)),
+          )
+          return {
+            ...node,
+            data: { ...node.data, color: hasActivePredecessor ? LOG_LEVEL_COLOR.info : undefined },
+          }
+        }
+
+        // Обычный step
         return {
           ...node,
           data: {
@@ -101,6 +132,15 @@ export default function Visualizer() {
           },
         }
       }))
+
+      // Жирные рёбра — оба конца активны
+      setEdges(prev => prev.map(edge => ({
+        ...edge,
+        data: {
+          ...edge.data,
+          active: activeIds.has(edge.source) && activeIds.has(edge.target),
+        },
+      })))
     } catch {
       setError('Не удалось получить данные визуализации')
     } finally {
@@ -109,6 +149,8 @@ export default function Visualizer() {
   }
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
+    // Клик только по step-узлам (маркеры и группы логов не имеют)
+    if (node.type !== 'step') return
     setSelectedNodeId(prev => prev === node.id ? null : node.id)
   }, [])
 
@@ -212,7 +254,6 @@ function LogPanel({ step, onClose }: { step: VisualizationStep; onClose: () => v
   return (
     <div className="w-80 shrink-0 border-l border-gray-200 bg-white flex flex-col overflow-hidden">
 
-      {/* Заголовок панели */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200 shrink-0">
         <div className="flex-1 min-w-0">
           <p className="font-medium text-sm text-gray-900 truncate">{step.stepName}</p>
@@ -229,7 +270,6 @@ function LogPanel({ step, onClose }: { step: VisualizationStep; onClose: () => v
         </button>
       </div>
 
-      {/* Список записей */}
       <div className="flex-1 overflow-y-auto">
         {step.logs.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-8">Логов не найдено</p>
@@ -260,14 +300,22 @@ function LogEntryRow({ entry }: { entry: LogEntry }) {
 // ── Вспомогательные функции ───────────────────────────────────────────────────
 
 function toNode(
-  inst: { instanceId: number; stepId: number; stepName: string; serviceName: string; x: number; y: number },
+  inst: { instanceId: number; stepId: number | null; stepName: string; serviceName: string; x: number; y: number; nodeType: string },
   color: string | undefined,
 ): Node {
+  if (inst.nodeType === 'start' || inst.nodeType === 'end') {
+    return {
+      id: String(inst.instanceId),
+      type: inst.nodeType,
+      position: { x: inst.x, y: inst.y },
+      data: { color },
+    }
+  }
   return {
     id: String(inst.instanceId),
     type: 'step',
     position: { x: inst.x, y: inst.y },
-    data: { stepId: inst.stepId, stepName: inst.stepName, serviceName: inst.serviceName, color } satisfies StepNodeData,
+    data: { stepId: inst.stepId ?? 0, stepName: inst.stepName, serviceName: inst.serviceName, color } satisfies StepNodeData,
   }
 }
 

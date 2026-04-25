@@ -25,9 +25,12 @@ public class SaveTemplateRequest {
     @Data
     public static class InstanceDto {
         @NotNull private String nodeId;
-        @NotNull private Long stepId;
+        /** null для маркеров start/end. */
+        private Long stepId;
         @NotNull private Double x;
         @NotNull private Double y;
+        /** Тип узла: step | start | end. */
+        private String nodeType;
     }
 
     @Data

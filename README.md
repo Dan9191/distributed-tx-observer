@@ -137,7 +137,7 @@ docker compose ps
 
 1. Успешный сценарий
 ```
-curl -X POST "http://localhost:8081/simulate/create-order?scenario=success"
+curl -X POST "http://localhost:8082/simulate/create-order?scenario=success"
 ```
 2. Нет товара (fail на inventory)
 ```

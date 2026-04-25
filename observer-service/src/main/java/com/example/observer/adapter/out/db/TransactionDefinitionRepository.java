@@ -11,7 +11,9 @@ public interface TransactionDefinitionRepository
 
     /**
      * Проверяет, зарегистрирована ли транзакция с данным именем.
-     * Используется при регистрации шагов для создания транзакции, если она ещё не существует.
      */
     boolean existsByName(String name);
+
+    /** Удаляет транзакцию по имени. */
+    void deleteByName(String name);
 }

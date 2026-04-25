@@ -22,9 +22,9 @@ public class StepTemplate {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Шаг, для которого задана позиция на канвасе. */
+    /** Шаг, для которого задана позиция на канвасе. Null для маркеров start/end. */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "step_id", nullable = false)
+    @JoinColumn(name = "step_id", nullable = true)
     private StepDefinition step;
 
     /** Координата X на канвасе (пиксели). */
@@ -34,4 +34,12 @@ public class StepTemplate {
     /** Координата Y на канвасе (пиксели). */
     @Column(name = "pos_y", nullable = false)
     private Double posY;
+
+    /** Тип узла: step | start | end. */
+    @Column(name = "node_type", nullable = false)
+    private String nodeType = "step";
+
+    /** Название транзакции (денормализация; обязательно для маркеров). */
+    @Column(name = "transaction_name")
+    private String transactionName;
 }

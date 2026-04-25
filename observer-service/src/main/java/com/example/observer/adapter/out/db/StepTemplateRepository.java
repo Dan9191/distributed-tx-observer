@@ -9,21 +9,29 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 /**
- * Репозиторий для работы с позициями шагов на канвасе шаблона.
+ * Репозиторий для работы с позициями узлов на канвасе шаблона.
  */
 public interface StepTemplateRepository extends JpaRepository<StepTemplate, Long> {
 
     /**
-     * Возвращает все позиции шагов для указанной транзакции.
-     * Используется при загрузке шаблона.
+     * Возвращает все узлы (шаги и маркеры) для указанной транзакции.
+     * Использует денормализованный столбец transaction_name.
      */
-    List<StepTemplate> findAllByStepTransactionName(String transactionName);
+    @Query("SELECT st FROM StepTemplate st WHERE st.transactionName = :transactionName")
+    List<StepTemplate> findAllByTransactionName(@Param("transactionName") String transactionName);
 
     /**
-     * Удаляет все позиции шагов для указанной транзакции.
-     * Вызывается перед сохранением нового шаблона (replace-стратегия).
+     * Удаляет все узлы для указанной транзакции (каскадно удаляет рёбра).
      */
     @Modifying(clearAutomatically = true)
-    @Query("DELETE FROM StepTemplate st WHERE st.step.transactionName = :transactionName")
+    @Query("DELETE FROM StepTemplate st WHERE st.transactionName = :transactionName")
     void deleteAllByTransactionName(@Param("transactionName") String transactionName);
+
+    /**
+     * Удаляет все экземпляры шага на канвасе (каскадно удаляет рёбра).
+     * Используется при удалении шага из системы.
+     */
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM StepTemplate st WHERE st.step.id = :stepId")
+    void deleteAllByStepId(@Param("stepId") Long stepId);
 }

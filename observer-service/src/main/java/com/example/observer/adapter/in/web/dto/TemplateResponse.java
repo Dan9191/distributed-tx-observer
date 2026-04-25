@@ -36,6 +36,8 @@ public class TemplateResponse {
         private String serviceName;
         private Double x;
         private Double y;
+        /** Тип узла: step | start | end. */
+        private String nodeType;
     }
 
     @Data

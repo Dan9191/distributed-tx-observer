@@ -34,14 +34,15 @@ public class VisualizationService {
 
         List<StepResult> steps = t.instances().stream()
                 .map(inst -> {
+                    String stepName = inst.stepName() != null ? inst.stepName() : "";
                     List<LogQueryPort.LogEntry> entries =
-                            logsByStep.getOrDefault(inst.stepName(), List.of());
+                            logsByStep.getOrDefault(stepName, List.of());
                     LogLevel maxLevel = entries.stream()
                             .map(LogQueryPort.LogEntry::level)
                             .reduce(LogLevel.NONE, LogLevel::max);
                     return new StepResult(
-                            inst.instanceId(), inst.stepId(), inst.stepName(), inst.serviceName(),
-                            inst.x(), inst.y(), maxLevel, entries);
+                            inst.instanceId(), inst.stepId(), stepName, inst.serviceName(),
+                            inst.x(), inst.y(), maxLevel, entries, inst.nodeType());
                 })
                 .toList();
 
@@ -64,6 +65,7 @@ public class VisualizationService {
             Double x,
             Double y,
             LogLevel logLevel,
-            List<LogQueryPort.LogEntry> logs
+            List<LogQueryPort.LogEntry> logs,
+            String nodeType
     ) {}
 }

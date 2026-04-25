@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -34,6 +35,12 @@ public class TemplateController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @DeleteMapping("/{name}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteTransaction(@PathVariable String name) {
+        templatePort.deleteTransaction(name);
+    }
+
     @PutMapping("/{name}/template")
     @ResponseStatus(HttpStatus.OK)
     public void saveTemplate(@PathVariable String name,
@@ -41,7 +48,7 @@ public class TemplateController {
         TemplatePort.SaveCommand command = new TemplatePort.SaveCommand(
                 request.getInstances().stream()
                         .map(i -> new TemplatePort.InstancePosition(
-                                i.getNodeId(), i.getStepId(), i.getX(), i.getY()))
+                                i.getNodeId(), i.getStepId(), i.getX(), i.getY(), i.getNodeType()))
                         .toList(),
                 request.getGroups().stream()
                         .map(g -> new TemplatePort.GroupPosition(
@@ -72,6 +79,7 @@ public class TemplateController {
             dto.setInstanceId(inst.instanceId()); dto.setStepId(inst.stepId());
             dto.setStepName(inst.stepName()); dto.setServiceName(inst.serviceName());
             dto.setX(inst.x()); dto.setY(inst.y());
+            dto.setNodeType(inst.nodeType() != null ? inst.nodeType() : "step");
             return dto;
         }).toList());
 

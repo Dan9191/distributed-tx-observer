@@ -10,29 +10,34 @@ import {
 
 export interface CustomEdgeData extends Record<string, unknown> {
   edgeStyle?: string
+  /** Устанавливается визуализатором: оба конца ребра активны. */
+  active?: boolean
 }
 
-type StyleKey = 'default' | 'straight' | 'smoothstep' | 'dashed' | 'dotted'
+type StyleKey = 'default' | 'straight' | 'smoothstep' | 'dashed' | 'dotted' | 'dashed-step'
 
 const STYLE_OPTIONS: { key: StyleKey; label: string; title: string }[] = [
-  { key: 'default',    label: '⌒', title: 'Bezier' },
-  { key: 'straight',   label: '—', title: 'Прямая' },
-  { key: 'smoothstep', label: '⌐', title: 'Ступени' },
-  { key: 'dashed',     label: '╌', title: 'Пунктир' },
-  { key: 'dotted',     label: '·····', title: 'Точки' },
+  { key: 'default',     label: '⌒',    title: 'Bezier' },
+  { key: 'straight',    label: '—',    title: 'Прямая' },
+  { key: 'smoothstep',  label: '⌐',    title: 'Ступени' },
+  { key: 'dashed',      label: '╌',    title: 'Пунктир' },
+  { key: 'dotted',      label: '·····', title: 'Точки' },
+  { key: 'dashed-step', label: '┐╌',   title: 'Пунктир с углами' },
 ]
 
 const DASH: Record<StyleKey, string | undefined> = {
-  default:    undefined,
-  straight:   undefined,
-  smoothstep: undefined,
-  dashed:     '7 4',
-  dotted:     '2 5',
+  default:     undefined,
+  straight:    undefined,
+  smoothstep:  undefined,
+  dashed:      '7 4',
+  dotted:      '2 5',
+  'dashed-step': '7 4',
 }
 
 /**
  * Кастомное ребро React Flow с выбором стиля линии.
  * При выборе ребра показывается мини-тулбар в середине линии.
+ * Если data.active === true — ребро рисуется жирным синим (визуализатор).
  */
 export default function CustomEdge({
   id, selected, data,
@@ -42,14 +47,17 @@ export default function CustomEdge({
 }: EdgeProps) {
   const { setEdges } = useReactFlow()
   const edgeStyle = ((data as CustomEdgeData)?.edgeStyle ?? 'default') as StyleKey
+  const active    = !!(data as CustomEdgeData)?.active
 
   let edgePath = ''
   let labelX = 0
   let labelY = 0
 
+  const isStep = edgeStyle === 'smoothstep' || edgeStyle === 'dashed-step'
+
   if (edgeStyle === 'straight') {
     ;[edgePath, labelX, labelY] = getStraightPath({ sourceX, sourceY, targetX, targetY })
-  } else if (edgeStyle === 'smoothstep') {
+  } else if (isStep) {
     ;[edgePath, labelX, labelY] = getSmoothStepPath({
       sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition,
     })
@@ -65,6 +73,9 @@ export default function CustomEdge({
     )
   }
 
+  const strokeColor  = active ? '#3b82f6' : selected ? '#3b82f6' : '#94a3b8'
+  const strokeWidth  = active ? 3 : selected ? 2.5 : 1.5
+
   return (
     <>
       <BaseEdge
@@ -72,8 +83,8 @@ export default function CustomEdge({
         markerEnd={markerEnd}
         style={{
           strokeDasharray: DASH[edgeStyle],
-          strokeWidth: selected ? 2.5 : 1.5,
-          stroke: selected ? '#3b82f6' : '#94a3b8',
+          strokeWidth,
+          stroke: strokeColor,
         }}
       />
 

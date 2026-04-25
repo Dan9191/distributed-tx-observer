@@ -48,6 +48,7 @@ public class VisualizationController {
         dto.setX(step.x()); dto.setY(step.y());
         dto.setLogLevel(step.logLevel().name().toLowerCase());
         dto.setLogs(step.logs().stream().map(this::toLogEntry).toList());
+        dto.setNodeType(step.nodeType() != null ? step.nodeType() : "step");
         return dto;
     }
 

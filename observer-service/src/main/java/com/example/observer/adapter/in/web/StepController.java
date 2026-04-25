@@ -2,20 +2,16 @@ package com.example.observer.adapter.in.web;
 
 import com.example.observer.adapter.in.web.dto.StepRegistrationRequest;
 import com.example.observer.domain.port.StepRegistrationPort;
+import com.example.observer.domain.port.TemplatePort;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 /**
- * REST-контроллер регистрации шагов транзакций.
- * Вызывается микросервисами при старте через observer-library.
+ * REST-контроллер регистрации и управления шагами транзакций.
  */
 @RestController
 @RequestMapping("/api/v1/steps")
@@ -23,6 +19,7 @@ import java.util.List;
 public class StepController {
 
     private final StepRegistrationPort stepRegistrationPort;
+    private final TemplatePort templatePort;
 
     /**
      * Регистрирует список шагов транзакций.
@@ -41,5 +38,16 @@ public class StepController {
                 .toList();
 
         stepRegistrationPort.registerSteps(commands);
+    }
+
+    /**
+     * Удаляет определение шага и все его экземпляры на канвасе.
+     *
+     * @param stepId идентификатор шага
+     */
+    @DeleteMapping("/{stepId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteStep(@PathVariable Long stepId) {
+        templatePort.deleteStep(stepId);
     }
 }

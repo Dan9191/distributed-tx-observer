@@ -20,12 +20,22 @@ public interface TemplatePort {
     /** Сохраняет шаблон транзакции. Полностью заменяет предыдущий шаблон. */
     void saveTemplate(String transactionName, SaveCommand command);
 
+    /** Удаляет транзакцию со всеми шагами и шаблоном. */
+    void deleteTransaction(String transactionName);
+
+    /** Удаляет определение шага и все его экземпляры на канвасе. */
+    void deleteStep(Long stepId);
+
     /** Определение шага (элемент палитры). */
     record StepDef(Long stepId, String stepName, String serviceName) {}
 
-    /** Экземпляр шага на канвасе. Один шаг может иметь несколько экземпляров. */
+    /**
+     * Экземпляр узла на канвасе.
+     * nodeType: "step" | "start" | "end".
+     * stepId/stepName/serviceName — null/"" для маркеров start/end.
+     */
     record StepInstance(Long instanceId, Long stepId, String stepName, String serviceName,
-                        Double x, Double y) {}
+                        Double x, Double y, String nodeType) {}
 
     /** Визуальная группа (именованная область) на канвасе. */
     record GroupInstance(Long groupId, String label, String color,
@@ -38,8 +48,8 @@ public interface TemplatePort {
     record Template(String transactionName, List<StepDef> steps,
                     List<StepInstance> instances, List<GroupInstance> groups, List<Edge> edges) {}
 
-    /** Позиция одного экземпляра шага для сохранения. */
-    record InstancePosition(String nodeId, Long stepId, Double x, Double y) {}
+    /** Позиция одного узла для сохранения. stepId — null для маркеров. */
+    record InstancePosition(String nodeId, Long stepId, Double x, Double y, String nodeType) {}
 
     /** Группа для сохранения. */
     record GroupPosition(String nodeId, String label, String color,

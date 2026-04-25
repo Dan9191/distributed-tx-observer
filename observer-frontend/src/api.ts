@@ -12,11 +12,13 @@ export interface StepDef {
 
 export interface StepInstance {
   instanceId: number
-  stepId: number
+  stepId: number | null
   stepName: string
   serviceName: string
   x: number
   y: number
+  /** Тип узла: "step" | "start" | "end" */
+  nodeType: string
 }
 
 export interface GroupInstance {
@@ -44,7 +46,7 @@ export interface TemplateResponse {
 }
 
 export interface SaveTemplatePayload {
-  instances: { nodeId: string; stepId: number; x: number; y: number }[]
+  instances: { nodeId: string; stepId: number | null; x: number; y: number; nodeType: string }[]
   groups: { nodeId: string; label: string; color: string; x: number; y: number; width: number; height: number }[]
   edges: { fromNodeId: string; toNodeId: string; style: string }[]
 }
@@ -60,6 +62,12 @@ export const getTemplate = (name: string): Promise<TemplateResponse> =>
 export const saveTemplate = (name: string, payload: SaveTemplatePayload): Promise<void> =>
   http.put(`/transactions/${encodeURIComponent(name)}/template`, payload).then(() => {})
 
+export const deleteTransaction = (name: string): Promise<void> =>
+  http.delete(`/transactions/${encodeURIComponent(name)}`).then(() => {})
+
+export const deleteStep = (stepId: number): Promise<void> =>
+  http.delete(`/steps/${stepId}`).then(() => {})
+
 // ── Визуализация ─────────────────────────────────────────────────────────────
 
 export interface LogEntry {
@@ -70,13 +78,15 @@ export interface LogEntry {
 
 export interface VisualizationStep {
   instanceId: number
-  stepId: number
+  stepId: number | null
   stepName: string
   serviceName: string
   x: number | null
   y: number | null
   logLevel: string
   logs: LogEntry[]
+  /** Тип узла: "step" | "start" | "end" */
+  nodeType: string
 }
 
 export interface VisualizationResponse {
