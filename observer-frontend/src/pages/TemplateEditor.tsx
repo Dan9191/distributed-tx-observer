@@ -15,14 +15,17 @@ import {
 import '@xyflow/react/dist/style.css'
 
 import StepNode, { type StepNodeData } from '../components/StepNode'
-import { getTemplate, saveTemplate, type StepDef, type StepInstance } from '../api'
+import GroupNode, { type GroupNodeData } from '../components/GroupNode'
+import { getTemplate, saveTemplate, type StepDef, type StepInstance, type GroupInstance } from '../api'
 
-const nodeTypes = { step: StepNode }
+const nodeTypes = { step: StepNode, group: GroupNode }
+
+const DEFAULT_GROUP_COLOR = '#6366f1'
 
 /**
  * Редактор шаблона транзакции.
- * Слева — палитра всех зарегистрированных шагов (шаг можно перетащить несколько раз).
- * Справа — канвас React Flow с экземплярами шагов.
+ * Слева — палитра всех зарегистрированных шагов + кнопка добавления группы.
+ * Справа — канвас React Flow с экземплярами шагов и группами.
  */
 export default function TemplateEditor() {
   const { name } = useParams<{ name: string }>()
@@ -46,7 +49,9 @@ export default function TemplateEditor() {
     if (!txName) return
     getTemplate(txName)
       .then(data => {
-        setNodes(data.instances.map(instanceToNode))
+        const stepNodes = data.instances.map(instanceToNode)
+        const groupNodes = data.groups.map(groupToNode)
+        setNodes([...groupNodes, ...stepNodes])
         setPalette(data.steps)
         setEdges(data.edges.map(e => ({
           id: `${e.fromInstanceId}-${e.toInstanceId}`,
@@ -89,17 +94,38 @@ export default function TemplateEditor() {
         x: e.clientX - bounds.left,
         y: e.clientY - bounds.top,
       })
-      // Каждый drop создаёт новый экземпляр с уникальным ID
       setNodes(nds => [...nds, {
         id: crypto.randomUUID(),
         type: 'step',
         position,
         data: { stepId: step.stepId, stepName: step.stepName, serviceName: step.serviceName },
       }])
-      // Палитра не изменяется — шаг всегда доступен для повторного drop
     },
     [setNodes],
   )
+
+  // ── Добавить группу ──────────────────────────────────────────────────────
+
+  const addGroup = useCallback(() => {
+    const viewport = rfInstance.current?.getViewport()
+    const canvas = canvasRef.current?.getBoundingClientRect()
+    let position = { x: 100, y: 100 }
+    if (rfInstance.current && canvas) {
+      position = rfInstance.current.screenToFlowPosition({
+        x: canvas.left + canvas.width / 2 - 100,
+        y: canvas.top + canvas.height / 2 - 75,
+      })
+    }
+    setNodes(nds => [...nds, {
+      id: crypto.randomUUID(),
+      type: 'group',
+      position,
+      style: { width: 200, height: 150 },
+      zIndex: -1,
+      data: { label: 'Новая группа', color: DEFAULT_GROUP_COLOR } satisfies GroupNodeData,
+    }])
+    void viewport // suppress unused warning
+  }, [setNodes])
 
   // ── Сохранение ───────────────────────────────────────────────────────────
 
@@ -108,17 +134,26 @@ export default function TemplateEditor() {
     setSaving(true)
     setError(null)
     try {
+      const stepNodes = nodes.filter(n => n.type === 'step')
+      const groupNodes = nodes.filter(n => n.type === 'group')
+
       await saveTemplate(txName, {
-        instances: nodes.map(n => ({
+        instances: stepNodes.map(n => ({
           nodeId: n.id,
           stepId: (n.data as StepNodeData).stepId,
           x: n.position.x,
           y: n.position.y,
         })),
-        edges: edges.map(e => ({
-          fromNodeId: e.source,
-          toNodeId: e.target,
+        groups: groupNodes.map(n => ({
+          nodeId: n.id,
+          label: (n.data as GroupNodeData).label,
+          color: (n.data as GroupNodeData).color,
+          x: n.position.x,
+          y: n.position.y,
+          width: (n.measured?.width ?? n.width ?? 200) as number,
+          height: (n.measured?.height ?? n.height ?? 150) as number,
         })),
+        edges: edges.map(e => ({ fromNodeId: e.source, toNodeId: e.target })),
       })
       setSaveOk(true)
       setTimeout(() => setSaveOk(false), 2000)
@@ -166,30 +201,48 @@ export default function TemplateEditor() {
       <div className="flex flex-1 overflow-hidden">
 
         {/* Палитра */}
-        <div className="w-64 shrink-0 border-r border-gray-200 bg-gray-50 overflow-y-auto p-4">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
-            Шаги
-          </p>
-          {loading && (
-            <p className="text-xs text-gray-400 text-center py-6">Загрузка...</p>
-          )}
-          {!loading && palette.length === 0 && (
-            <p className="text-xs text-gray-400 text-center py-6">Нет зарегистрированных шагов</p>
-          )}
-          <div className="space-y-2">
-            {palette.map(step => (
-              <div
-                key={step.stepId}
-                draggable
-                onDragStart={e => onDragStart(e, step)}
-                className="bg-white border border-dashed border-gray-300 rounded-lg p-3
-                           cursor-grab active:cursor-grabbing hover:border-blue-400
-                           hover:shadow-sm transition-all select-none"
-              >
-                <p className="text-sm font-medium text-gray-800">{step.stepName}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{step.serviceName}</p>
-              </div>
-            ))}
+        <div className="w-64 shrink-0 border-r border-gray-200 bg-gray-50 overflow-y-auto p-4 flex flex-col gap-4">
+
+          {/* Группы */}
+          <div>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+              Группы
+            </p>
+            <button
+              onClick={addGroup}
+              className="w-full text-left bg-white border border-dashed border-indigo-300 rounded-lg p-3
+                         hover:border-indigo-500 hover:shadow-sm transition-all text-sm text-indigo-600 font-medium"
+            >
+              + Добавить группу
+            </button>
+          </div>
+
+          {/* Шаги */}
+          <div className="flex-1">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+              Шаги
+            </p>
+            {loading && (
+              <p className="text-xs text-gray-400 text-center py-6">Загрузка...</p>
+            )}
+            {!loading && palette.length === 0 && (
+              <p className="text-xs text-gray-400 text-center py-6">Нет зарегистрированных шагов</p>
+            )}
+            <div className="space-y-2">
+              {palette.map(step => (
+                <div
+                  key={step.stepId}
+                  draggable
+                  onDragStart={e => onDragStart(e, step)}
+                  className="bg-white border border-dashed border-gray-300 rounded-lg p-3
+                             cursor-grab active:cursor-grabbing hover:border-blue-400
+                             hover:shadow-sm transition-all select-none"
+                >
+                  <p className="text-sm font-medium text-gray-800">{step.stepName}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{step.serviceName}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -221,5 +274,16 @@ function instanceToNode(inst: StepInstance): Node {
     type: 'step',
     position: { x: inst.x, y: inst.y },
     data: { stepId: inst.stepId, stepName: inst.stepName, serviceName: inst.serviceName },
+  }
+}
+
+function groupToNode(g: GroupInstance): Node {
+  return {
+    id: `g-${g.groupId}`,
+    type: 'group',
+    position: { x: g.x, y: g.y },
+    style: { width: g.width, height: g.height },
+    zIndex: -1,
+    data: { label: g.label, color: g.color } satisfies GroupNodeData,
   }
 }

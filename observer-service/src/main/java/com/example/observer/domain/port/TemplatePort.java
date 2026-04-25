@@ -9,50 +9,46 @@ import java.util.Optional;
  */
 public interface TemplatePort {
 
-    /**
-     * Возвращает названия всех зарегистрированных транзакций в алфавитном порядке.
-     */
     List<String> getAllTransactionNames();
 
     /**
-     * Возвращает шаблон транзакции: определения шагов (палитра), экземпляры на канвасе и рёбра.
-     *
-     * @param transactionName название транзакции
-     * @return шаблон, или {@code Optional.empty()} если транзакция не существует
+     * Возвращает шаблон транзакции: определения шагов (палитра), экземпляры на канвасе,
+     * визуальные группы и рёбра.
      */
     Optional<Template> getTemplate(String transactionName);
 
-    /**
-     * Сохраняет шаблон транзакции. Полностью заменяет предыдущий шаблон.
-     *
-     * @param transactionName название транзакции
-     * @param command         новые экземпляры и рёбра
-     */
+    /** Сохраняет шаблон транзакции. Полностью заменяет предыдущий шаблон. */
     void saveTemplate(String transactionName, SaveCommand command);
 
     /** Определение шага (элемент палитры). */
     record StepDef(Long stepId, String stepName, String serviceName) {}
 
-    /**
-     * Конкретный экземпляр шага на канвасе.
-     * Один шаг может иметь несколько экземпляров с разными позициями.
-     */
+    /** Экземпляр шага на канвасе. Один шаг может иметь несколько экземпляров. */
     record StepInstance(Long instanceId, Long stepId, String stepName, String serviceName,
                         Double x, Double y) {}
+
+    /** Визуальная группа (именованная область) на канвасе. */
+    record GroupInstance(Long groupId, String label, String color,
+                         Double x, Double y, Double width, Double height) {}
 
     /** Направленное ребро между двумя экземплярами. */
     record Edge(Long fromInstanceId, Long toInstanceId) {}
 
     /** Полный шаблон транзакции. */
     record Template(String transactionName, List<StepDef> steps,
-                    List<StepInstance> instances, List<Edge> edges) {}
+                    List<StepInstance> instances, List<GroupInstance> groups, List<Edge> edges) {}
 
-    /** Позиция одного экземпляра для сохранения. {@code nodeId} — клиентский ID узла React Flow. */
+    /** Позиция одного экземпляра шага для сохранения. */
     record InstancePosition(String nodeId, Long stepId, Double x, Double y) {}
 
-    /** Ребро в команде сохранения; ссылается на клиентские {@code nodeId}. */
+    /** Группа для сохранения. */
+    record GroupPosition(String nodeId, String label, String color,
+                         Double x, Double y, Double width, Double height) {}
+
+    /** Ребро в команде сохранения; ссылается на клиентские nodeId. */
     record EdgeCommand(String fromNodeId, String toNodeId) {}
 
     /** Команда сохранения шаблона. */
-    record SaveCommand(List<InstancePosition> instances, List<EdgeCommand> edges) {}
+    record SaveCommand(List<InstancePosition> instances, List<GroupPosition> groups,
+                       List<EdgeCommand> edges) {}
 }

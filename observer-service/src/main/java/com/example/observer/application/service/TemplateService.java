@@ -4,6 +4,7 @@ import com.example.observer.adapter.out.db.*;
 import com.example.observer.domain.model.StepDefinition;
 import com.example.observer.domain.model.StepEdge;
 import com.example.observer.domain.model.StepTemplate;
+import com.example.observer.domain.model.TemplateGroup;
 import com.example.observer.domain.port.TemplatePort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,7 +18,6 @@ import java.util.stream.Collectors;
 
 /**
  * Сервис управления шаблонами транзакций.
- * Реализует логику чтения и сохранения экземпляров шагов и рёбер графа.
  */
 @Service
 @RequiredArgsConstructor
@@ -27,6 +27,7 @@ public class TemplateService implements TemplatePort {
     private final StepDefinitionRepository stepRepo;
     private final StepTemplateRepository stepTemplateRepo;
     private final StepEdgeRepository stepEdgeRepo;
+    private final TemplateGroupRepository groupRepo;
 
     /** {@inheritDoc} */
     @Override
@@ -38,12 +39,7 @@ public class TemplateService implements TemplatePort {
                 .toList();
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Возвращает все определения шагов транзакции (палитра) и все экземпляры на канвасе.
-     * Один шаг может быть представлен несколькими экземплярами.
-     */
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
     public Optional<Template> getTemplate(String transactionName) {
@@ -53,6 +49,7 @@ public class TemplateService implements TemplatePort {
 
         List<StepDefinition> allSteps = stepRepo.findAllByTransactionName(transactionName);
         List<StepTemplate> positioned = stepTemplateRepo.findAllByStepTransactionName(transactionName);
+        List<TemplateGroup> groups = groupRepo.findAllByTransactionName(transactionName);
         List<StepEdge> edges = stepEdgeRepo.findAllByFromInstanceStepTransactionName(transactionName);
 
         List<StepDef> stepDefs = allSteps.stream()
@@ -61,40 +58,40 @@ public class TemplateService implements TemplatePort {
 
         List<StepInstance> instances = positioned.stream()
                 .map(t -> new StepInstance(
-                        t.getId(),
-                        t.getStep().getId(),
-                        t.getStep().getStepName(),
-                        t.getStep().getServiceName(),
-                        t.getPosX(),
-                        t.getPosY()
-                ))
+                        t.getId(), t.getStep().getId(),
+                        t.getStep().getStepName(), t.getStep().getServiceName(),
+                        t.getPosX(), t.getPosY()))
+                .toList();
+
+        List<GroupInstance> groupInstances = groups.stream()
+                .map(g -> new GroupInstance(
+                        g.getId(), g.getLabel(), g.getColor(),
+                        g.getPosX(), g.getPosY(), g.getWidth(), g.getHeight()))
                 .toList();
 
         List<Edge> edgeDtos = edges.stream()
                 .map(e -> new Edge(e.getFromInstance().getId(), e.getToInstance().getId()))
                 .toList();
 
-        return Optional.of(new Template(transactionName, stepDefs, instances, edgeDtos));
+        return Optional.of(new Template(transactionName, stepDefs, instances, groupInstances, edgeDtos));
     }
 
     /**
      * {@inheritDoc}
      *
-     * <p>Стратегия: полное удаление предыдущего шаблона с последующей вставкой нового.
-     * Рёбра удаляются явно перед экземплярами; FK ON DELETE CASCADE — дополнительная страховка.
-     * Для привязки рёбер к новым экземплярам используется клиентский {@code nodeId}.
+     * <p>Стратегия replace: удаляет рёбра → экземпляры (cascade) → группы, затем вставляет новые.
      */
     @Override
     @Transactional
     public void saveTemplate(String transactionName, SaveCommand command) {
         stepEdgeRepo.deleteAllByTransactionName(transactionName);
         stepTemplateRepo.deleteAllByTransactionName(transactionName);
+        groupRepo.deleteAllByTransactionName(transactionName);
 
         Map<Long, StepDefinition> stepById = stepRepo.findAllByTransactionName(transactionName)
-                .stream()
-                .collect(Collectors.toMap(StepDefinition::getId, s -> s));
+                .stream().collect(Collectors.toMap(StepDefinition::getId, s -> s));
 
-        // Сохраняем экземпляры; строим карту nodeId → StepTemplate для последующей привязки рёбер
+        // Сохраняем экземпляры шагов; строим карту nodeId → StepTemplate для рёбер
         Map<String, StepTemplate> byNodeId = new LinkedHashMap<>();
         for (InstancePosition pos : command.instances()) {
             if (!stepById.containsKey(pos.stepId())) continue;
@@ -105,6 +102,20 @@ public class TemplateService implements TemplatePort {
             byNodeId.put(pos.nodeId(), stepTemplateRepo.save(t));
         }
 
+        // Сохраняем группы
+        for (GroupPosition gp : command.groups()) {
+            TemplateGroup g = new TemplateGroup();
+            g.setTransactionName(transactionName);
+            g.setLabel(gp.label());
+            g.setColor(gp.color());
+            g.setPosX(gp.x());
+            g.setPosY(gp.y());
+            g.setWidth(gp.width());
+            g.setHeight(gp.height());
+            groupRepo.save(g);
+        }
+
+        // Сохраняем рёбра
         List<StepEdge> edgeEntities = command.edges().stream()
                 .filter(e -> byNodeId.containsKey(e.fromNodeId()) && byNodeId.containsKey(e.toNodeId()))
                 .map(e -> {

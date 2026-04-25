@@ -21,20 +21,11 @@ public class TemplateController {
 
     private final TemplatePort templatePort;
 
-    /**
-     * Возвращает список названий всех зарегистрированных транзакций.
-     */
     @GetMapping
     public List<String> getAllTransactions() {
         return templatePort.getAllTransactionNames();
     }
 
-    /**
-     * Возвращает шаблон транзакции: определения шагов (палитра), экземпляры на канвасе и рёбра.
-     *
-     * @param name название транзакции
-     * @return шаблон, или 404 если транзакция не существует
-     */
     @GetMapping("/{name}/template")
     public ResponseEntity<TemplateResponse> getTemplate(@PathVariable String name) {
         return templatePort.getTemplate(name)
@@ -43,12 +34,6 @@ public class TemplateController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    /**
-     * Сохраняет шаблон транзакции. Полностью заменяет предыдущий шаблон.
-     *
-     * @param name    название транзакции
-     * @param request новые экземпляры и рёбра
-     */
     @PutMapping("/{name}/template")
     @ResponseStatus(HttpStatus.OK)
     public void saveTemplate(@PathVariable String name,
@@ -57,6 +42,11 @@ public class TemplateController {
                 request.getInstances().stream()
                         .map(i -> new TemplatePort.InstancePosition(
                                 i.getNodeId(), i.getStepId(), i.getX(), i.getY()))
+                        .toList(),
+                request.getGroups().stream()
+                        .map(g -> new TemplatePort.GroupPosition(
+                                g.getNodeId(), g.getLabel(), g.getColor(),
+                                g.getX(), g.getY(), g.getWidth(), g.getHeight()))
                         .toList(),
                 request.getEdges().stream()
                         .map(e -> new TemplatePort.EdgeCommand(e.getFromNodeId(), e.getToNodeId()))
@@ -67,42 +57,37 @@ public class TemplateController {
 
     // ── mapping ───────────────────────────────────────────────────────────────
 
-    private TemplateResponse toResponse(TemplatePort.Template template) {
-        TemplateResponse response = new TemplateResponse();
-        response.setTransactionName(template.transactionName());
+    private TemplateResponse toResponse(TemplatePort.Template t) {
+        TemplateResponse r = new TemplateResponse();
+        r.setTransactionName(t.transactionName());
 
-        response.setSteps(template.steps().stream()
-                .map(s -> {
-                    TemplateResponse.StepDto dto = new TemplateResponse.StepDto();
-                    dto.setStepId(s.stepId());
-                    dto.setStepName(s.stepName());
-                    dto.setServiceName(s.serviceName());
-                    return dto;
-                })
-                .toList());
+        r.setSteps(t.steps().stream().map(s -> {
+            TemplateResponse.StepDto dto = new TemplateResponse.StepDto();
+            dto.setStepId(s.stepId()); dto.setStepName(s.stepName()); dto.setServiceName(s.serviceName());
+            return dto;
+        }).toList());
 
-        response.setInstances(template.instances().stream()
-                .map(inst -> {
-                    TemplateResponse.InstanceDto dto = new TemplateResponse.InstanceDto();
-                    dto.setInstanceId(inst.instanceId());
-                    dto.setStepId(inst.stepId());
-                    dto.setStepName(inst.stepName());
-                    dto.setServiceName(inst.serviceName());
-                    dto.setX(inst.x());
-                    dto.setY(inst.y());
-                    return dto;
-                })
-                .toList());
+        r.setInstances(t.instances().stream().map(inst -> {
+            TemplateResponse.InstanceDto dto = new TemplateResponse.InstanceDto();
+            dto.setInstanceId(inst.instanceId()); dto.setStepId(inst.stepId());
+            dto.setStepName(inst.stepName()); dto.setServiceName(inst.serviceName());
+            dto.setX(inst.x()); dto.setY(inst.y());
+            return dto;
+        }).toList());
 
-        response.setEdges(template.edges().stream()
-                .map(e -> {
-                    TemplateResponse.EdgeDto dto = new TemplateResponse.EdgeDto();
-                    dto.setFromInstanceId(e.fromInstanceId());
-                    dto.setToInstanceId(e.toInstanceId());
-                    return dto;
-                })
-                .toList());
+        r.setGroups(t.groups().stream().map(g -> {
+            TemplateResponse.GroupDto dto = new TemplateResponse.GroupDto();
+            dto.setGroupId(g.groupId()); dto.setLabel(g.label()); dto.setColor(g.color());
+            dto.setX(g.x()); dto.setY(g.y()); dto.setWidth(g.width()); dto.setHeight(g.height());
+            return dto;
+        }).toList());
 
-        return response;
+        r.setEdges(t.edges().stream().map(e -> {
+            TemplateResponse.EdgeDto dto = new TemplateResponse.EdgeDto();
+            dto.setFromInstanceId(e.fromInstanceId()); dto.setToInstanceId(e.toInstanceId());
+            return dto;
+        }).toList());
+
+        return r;
     }
 }

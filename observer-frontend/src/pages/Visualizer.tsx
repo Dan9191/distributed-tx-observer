@@ -12,9 +12,10 @@ import {
 import '@xyflow/react/dist/style.css'
 
 import StepNode, { type StepNodeData } from '../components/StepNode'
-import { getTemplate, visualize, type VisualizationStep, type VisualizationResponse, type LogEntry } from '../api'
+import GroupNode from '../components/GroupNode'
+import { getTemplate, visualize, type VisualizationStep, type VisualizationResponse, type LogEntry, type GroupInstance } from '../api'
 
-const nodeTypes = { step: StepNode }
+const nodeTypes = { step: StepNode, group: GroupNode }
 
 const LOG_LEVEL_COLOR: Record<string, string> = {
   info:  '#639922',
@@ -58,7 +59,9 @@ export default function Visualizer() {
     if (!txName) return
     getTemplate(txName)
       .then(data => {
-        setNodes(data.instances.map(inst => toNode(inst, undefined)))
+        const groupNodes = data.groups.map(groupToNode)
+        const stepNodes = data.instances.map(inst => toNode(inst, undefined))
+        setNodes([...groupNodes, ...stepNodes])
         const initEdges: Edge[] = data.edges.map(e => ({
           id: `${e.fromInstanceId}-${e.toInstanceId}`,
           source: String(e.fromInstanceId),
@@ -256,6 +259,17 @@ function toNode(
     type: 'step',
     position: { x: inst.x, y: inst.y },
     data: { stepId: inst.stepId, stepName: inst.stepName, serviceName: inst.serviceName, color } satisfies StepNodeData,
+  }
+}
+
+function groupToNode(g: GroupInstance): Node {
+  return {
+    id: `g-${g.groupId}`,
+    type: 'group',
+    position: { x: g.x, y: g.y },
+    style: { width: g.width, height: g.height },
+    zIndex: -1,
+    data: { label: g.label, color: g.color },
   }
 }
 
