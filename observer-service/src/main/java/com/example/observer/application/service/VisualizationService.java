@@ -14,8 +14,11 @@ import java.util.Optional;
  * Сервис визуализации: совмещает топологию шаблона транзакции
  * с реальными лог-данными конкретного запуска.
  *
- * <p>Для каждого шага вычисляет максимальный {@link LogLevel} из всех его лог-записей
+ * <p>Для каждого экземпляра шага вычисляет максимальный {@link LogLevel} из всех его лог-записей
  * с переданным {@code operationId}, согласно правилу: {@code ERROR > WARN > INFO > NONE}.</p>
+ *
+ * <p>Если один шаг представлен несколькими экземплярами на канвасе,
+ * все экземпляры получают одинаковый logLevel и одинаковый набор логов.</p>
  */
 @Service
 @RequiredArgsConstructor
@@ -42,16 +45,16 @@ public class VisualizationService {
 
         TemplatePort.Template t = template.get();
 
-        List<StepResult> steps = t.steps().stream()
-                .map(step -> {
+        List<StepResult> steps = t.instances().stream()
+                .map(inst -> {
                     List<LogQueryPort.LogEntry> entries =
-                            logsByStep.getOrDefault(step.stepName(), List.of());
+                            logsByStep.getOrDefault(inst.stepName(), List.of());
                     LogLevel maxLevel = entries.stream()
                             .map(LogQueryPort.LogEntry::level)
                             .reduce(LogLevel.NONE, LogLevel::max);
                     return new StepResult(
-                            step.stepId(), step.stepName(), step.serviceName(),
-                            step.x(), step.y(), maxLevel, entries
+                            inst.instanceId(), inst.stepId(), inst.stepName(), inst.serviceName(),
+                            inst.x(), inst.y(), maxLevel, entries
                     );
                 })
                 .toList();
@@ -61,11 +64,6 @@ public class VisualizationService {
 
     /**
      * Полный результат визуализации одного запуска транзакции.
-     *
-     * @param transactionName название транзакции
-     * @param operationId     UUID запуска
-     * @param steps           шаги с позициями, уровнями и логами
-     * @param edges           рёбра графа транзакции
      */
     public record Result(
             String transactionName,
@@ -75,17 +73,19 @@ public class VisualizationService {
     ) {}
 
     /**
-     * Шаг визуализации: позиция на канвасе + уровень логов + записи.
+     * Экземпляр шага с позицией на канвасе, уровнем логов и записями.
      *
-     * @param stepId      идентификатор шага в БД
+     * @param instanceId  идентификатор экземпляра (step_template.id)
+     * @param stepId      идентификатор определения шага
      * @param stepName    имя шага
      * @param serviceName микросервис, выполняющий шаг
-     * @param x           координата X на канвасе ({@code null} — шаг не размещён)
-     * @param y           координата Y на канвасе ({@code null} — шаг не размещён)
+     * @param x           координата X на канвасе
+     * @param y           координата Y на канвасе
      * @param logLevel    максимальный уровень лога среди всех записей шага
-     * @param logs        лог-записи шага, отсортированные по времени
+     * @param logs        лог-записи шага
      */
     public record StepResult(
+            Long instanceId,
             Long stepId,
             String stepName,
             String serviceName,

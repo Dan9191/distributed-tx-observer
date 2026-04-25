@@ -14,25 +14,31 @@ import java.util.List;
 public class SaveTemplateRequest {
 
     /**
-     * Позиции шагов на канвасе.
-     * Шаги, отсутствующие в списке, удаляются с канваса (становятся элементами палитры).
+     * Экземпляры шагов на канвасе.
+     * Каждый экземпляр идентифицируется клиентским {@code nodeId} (ID узла React Flow).
      */
     @NotNull
     @Valid
-    private List<Step> steps;
-
-    /** Рёбра графа. */
-    @NotNull
-    @Valid
-    private List<Edge> edges;
+    private List<InstanceDto> instances;
 
     /**
-     * Позиция одного шага на канвасе.
+     * Рёбра графа. Ссылаются на {@code nodeId} экземпляров из списка {@code instances}.
+     */
+    @NotNull
+    @Valid
+    private List<EdgeDto> edges;
+
+    /**
+     * Позиция одного экземпляра шага на канвасе.
      */
     @Data
-    public static class Step {
+    public static class InstanceDto {
 
-        /** Идентификатор шага. */
+        /** Клиентский ID узла React Flow (UUID или строка). */
+        @NotNull
+        private String nodeId;
+
+        /** Идентификатор шага (step_definition.id). */
         @NotNull
         private Long stepId;
 
@@ -46,17 +52,17 @@ public class SaveTemplateRequest {
     }
 
     /**
-     * Направленное ребро между двумя шагами.
+     * Направленное ребро между двумя экземплярами.
      */
     @Data
-    public static class Edge {
+    public static class EdgeDto {
 
-        /** ID исходящего шага. */
+        /** {@code nodeId} исходящего экземпляра (откуда стрелка). */
         @NotNull
-        private Long fromStepId;
+        private String fromNodeId;
 
-        /** ID входящего шага. */
+        /** {@code nodeId} входящего экземпляра (куда стрелка). */
         @NotNull
-        private Long toStepId;
+        private String toNodeId;
     }
 }

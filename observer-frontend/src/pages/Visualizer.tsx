@@ -45,7 +45,8 @@ export default function Visualizer() {
 
   const [operationId, setOperationId] = useState('')
   const [vizData, setVizData] = useState<VisualizationResponse | null>(null)
-  const [selectedStepId, setSelectedStepId] = useState<number | null>(null)
+  // Идентификатор выбранного экземпляра (строка = String(instanceId))
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
 
   const [templateLoading, setTemplateLoading] = useState(true)
   const [vizLoading, setVizLoading] = useState(false)
@@ -57,15 +58,11 @@ export default function Visualizer() {
     if (!txName) return
     getTemplate(txName)
       .then(data => {
-        const positioned = data.steps.filter(
-          (s): s is typeof s & { x: number; y: number } => s.x !== null,
-        )
-        setNodes(positioned.map(s => toNode(s, undefined)))
-        // edges неизменяемы в визуализаторе — ставим через onEdgesChange
+        setNodes(data.instances.map(inst => toNode(inst, undefined)))
         const initEdges: Edge[] = data.edges.map(e => ({
-          id: `${e.fromStepId}-${e.toStepId}`,
-          source: String(e.fromStepId),
-          target: String(e.toStepId),
+          id: `${e.fromInstanceId}-${e.toInstanceId}`,
+          source: String(e.fromInstanceId),
+          target: String(e.toInstanceId),
         }))
         onEdgesChange(initEdges.map(e => ({ type: 'add' as const, item: e })))
       })
@@ -79,12 +76,12 @@ export default function Visualizer() {
     if (!operationId.trim() || !txName) return
     setVizLoading(true)
     setError(null)
-    setSelectedStepId(null)
+    setSelectedNodeId(null)
     try {
       const data = await visualize(operationId.trim(), txName)
       setVizData(data)
       setNodes(prev => prev.map(node => {
-        const step = data.steps.find(s => s.stepId === Number(node.id))
+        const step = data.steps.find(s => String(s.instanceId) === node.id)
         return {
           ...node,
           data: {
@@ -101,10 +98,10 @@ export default function Visualizer() {
   }
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
-    setSelectedStepId(prev => prev === Number(node.id) ? null : Number(node.id))
+    setSelectedNodeId(prev => prev === node.id ? null : node.id)
   }, [])
 
-  const selectedStep = vizData?.steps.find(s => s.stepId === selectedStepId) ?? null
+  const selectedStep = vizData?.steps.find(s => String(s.instanceId) === selectedNodeId) ?? null
 
   // ── Рендер ───────────────────────────────────────────────────────────────
 
@@ -190,7 +187,7 @@ export default function Visualizer() {
 
         {/* Боковая панель логов */}
         {selectedStep && (
-          <LogPanel step={selectedStep} onClose={() => setSelectedStepId(null)} />
+          <LogPanel step={selectedStep} onClose={() => setSelectedNodeId(null)} />
         )}
       </div>
     </div>
@@ -251,14 +248,14 @@ function LogEntryRow({ entry }: { entry: LogEntry }) {
 // ── Вспомогательные функции ───────────────────────────────────────────────────
 
 function toNode(
-  step: { stepId: number; stepName: string; serviceName: string; x: number; y: number },
+  inst: { instanceId: number; stepId: number; stepName: string; serviceName: string; x: number; y: number },
   color: string | undefined,
 ): Node {
   return {
-    id: String(step.stepId),
+    id: String(inst.instanceId),
     type: 'step',
-    position: { x: step.x, y: step.y },
-    data: { stepId: step.stepId, stepName: step.stepName, serviceName: step.serviceName, color } satisfies StepNodeData,
+    position: { x: inst.x, y: inst.y },
+    data: { stepId: inst.stepId, stepName: inst.stepName, serviceName: inst.serviceName, color } satisfies StepNodeData,
   }
 }
 

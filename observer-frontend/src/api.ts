@@ -4,28 +4,41 @@ const http = axios.create({ baseURL: '/api/v1' })
 
 // ── Типы ────────────────────────────────────────────────────────────────────
 
-export interface TemplateStep {
+/** Определение шага — элемент палитры. */
+export interface StepDef {
   stepId: number
   stepName: string
   serviceName: string
-  x: number | null
-  y: number | null
 }
 
+/** Экземпляр шага на канвасе (один шаг может иметь несколько экземпляров). */
+export interface StepInstance {
+  instanceId: number
+  stepId: number
+  stepName: string
+  serviceName: string
+  x: number
+  y: number
+}
+
+/** Направленное ребро между двумя экземплярами. */
 export interface TemplateEdge {
-  fromStepId: number
-  toStepId: number
+  fromInstanceId: number
+  toInstanceId: number
 }
 
 export interface TemplateResponse {
   transactionName: string
-  steps: TemplateStep[]
+  /** Все зарегистрированные шаги (для палитры). */
+  steps: StepDef[]
+  /** Экземпляры шагов, размещённые на канвасе. */
+  instances: StepInstance[]
   edges: TemplateEdge[]
 }
 
 export interface SaveTemplatePayload {
-  steps: { stepId: number; x: number; y: number }[]
-  edges: { fromStepId: number; toStepId: number }[]
+  instances: { nodeId: string; stepId: number; x: number; y: number }[]
+  edges: { fromNodeId: string; toNodeId: string }[]
 }
 
 // ── Запросы ─────────────────────────────────────────────────────────────────
@@ -34,7 +47,7 @@ export interface SaveTemplatePayload {
 export const getTransactions = (): Promise<string[]> =>
   http.get<string[]>('/transactions').then(r => r.data)
 
-/** Шаблон транзакции: шаги с позициями и рёбра. */
+/** Шаблон транзакции: шаги (палитра), экземпляры на канвасе и рёбра. */
 export const getTemplate = (name: string): Promise<TemplateResponse> =>
   http.get<TemplateResponse>(`/transactions/${encodeURIComponent(name)}/template`).then(r => r.data)
 
@@ -51,12 +64,13 @@ export interface LogEntry {
 }
 
 export interface VisualizationStep {
+  instanceId: number
   stepId: number
   stepName: string
   serviceName: string
   x: number | null
   y: number | null
-  /** Максимальный уровень лога шага: "info" | "warn" | "error" | "none". */
+  /** Максимальный уровень лога: "info" | "warn" | "error" | "none". */
   logLevel: string
   logs: LogEntry[]
 }

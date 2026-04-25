@@ -15,7 +15,8 @@
       "Bash(docker-compose up *)",
       "Bash(docker cp *)",
       "Bash(docker restart *)",
-      "Bash(unzip -Z1 \"D:/rep2/distributed-tx-monitor/test-stand/demo-service/build/libs/demo-service-0.0.1-SNAPSHOT.jar\")"
+      "Bash(unzip -Z1 \"D:/rep2/distributed-tx-monitor/test-stand/demo-service/build/libs/demo-service-0.0.1-SNAPSHOT.jar\")",
+      "Bash(./gradlew :observer-service:bootJar -x test)"
     ]
   }
 }

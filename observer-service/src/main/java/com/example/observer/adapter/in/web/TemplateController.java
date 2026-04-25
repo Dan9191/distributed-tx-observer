@@ -30,8 +30,7 @@ public class TemplateController {
     }
 
     /**
-     * Возвращает шаблон транзакции: шаги с позициями и рёбра графа.
-     * Шаги без позиций — элементы палитры, ещё не размещённые на канвасе.
+     * Возвращает шаблон транзакции: определения шагов (палитра), экземпляры на канвасе и рёбра.
      *
      * @param name название транзакции
      * @return шаблон, или 404 если транзакция не существует
@@ -45,52 +44,62 @@ public class TemplateController {
     }
 
     /**
-     * Сохраняет шаблон транзакции: позиции шагов и рёбра графа.
-     * Полностью заменяет предыдущий шаблон.
+     * Сохраняет шаблон транзакции. Полностью заменяет предыдущий шаблон.
      *
      * @param name    название транзакции
-     * @param request новые позиции и рёбра
+     * @param request новые экземпляры и рёбра
      */
     @PutMapping("/{name}/template")
     @ResponseStatus(HttpStatus.OK)
     public void saveTemplate(@PathVariable String name,
                              @RequestBody @Valid SaveTemplateRequest request) {
         TemplatePort.SaveCommand command = new TemplatePort.SaveCommand(
-                request.getSteps().stream()
-                        .map(s -> new TemplatePort.StepPosition(s.getStepId(), s.getX(), s.getY()))
+                request.getInstances().stream()
+                        .map(i -> new TemplatePort.InstancePosition(
+                                i.getNodeId(), i.getStepId(), i.getX(), i.getY()))
                         .toList(),
                 request.getEdges().stream()
-                        .map(e -> new TemplatePort.Edge(e.getFromStepId(), e.getToStepId()))
+                        .map(e -> new TemplatePort.EdgeCommand(e.getFromNodeId(), e.getToNodeId()))
                         .toList()
         );
         templatePort.saveTemplate(name, command);
     }
 
-    /**
-     * Преобразует доменный объект шаблона в DTO ответа.
-     */
+    // ── mapping ───────────────────────────────────────────────────────────────
+
     private TemplateResponse toResponse(TemplatePort.Template template) {
         TemplateResponse response = new TemplateResponse();
         response.setTransactionName(template.transactionName());
 
         response.setSteps(template.steps().stream()
                 .map(s -> {
-                    TemplateResponse.Step step = new TemplateResponse.Step();
-                    step.setStepId(s.stepId());
-                    step.setStepName(s.stepName());
-                    step.setServiceName(s.serviceName());
-                    step.setX(s.x());
-                    step.setY(s.y());
-                    return step;
+                    TemplateResponse.StepDto dto = new TemplateResponse.StepDto();
+                    dto.setStepId(s.stepId());
+                    dto.setStepName(s.stepName());
+                    dto.setServiceName(s.serviceName());
+                    return dto;
+                })
+                .toList());
+
+        response.setInstances(template.instances().stream()
+                .map(inst -> {
+                    TemplateResponse.InstanceDto dto = new TemplateResponse.InstanceDto();
+                    dto.setInstanceId(inst.instanceId());
+                    dto.setStepId(inst.stepId());
+                    dto.setStepName(inst.stepName());
+                    dto.setServiceName(inst.serviceName());
+                    dto.setX(inst.x());
+                    dto.setY(inst.y());
+                    return dto;
                 })
                 .toList());
 
         response.setEdges(template.edges().stream()
                 .map(e -> {
-                    TemplateResponse.Edge edge = new TemplateResponse.Edge();
-                    edge.setFromStepId(e.fromStepId());
-                    edge.setToStepId(e.toStepId());
-                    return edge;
+                    TemplateResponse.EdgeDto dto = new TemplateResponse.EdgeDto();
+                    dto.setFromInstanceId(e.fromInstanceId());
+                    dto.setToInstanceId(e.toInstanceId());
+                    return dto;
                 })
                 .toList());
 

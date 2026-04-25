@@ -6,8 +6,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Направленное ребро между двумя шагами на канвасе шаблона.
- * Определяет граф выполнения транзакции: откуда и куда ведёт стрелка.
+ * Направленное ребро между двумя экземплярами шагов на канвасе шаблона.
+ * Ссылается на конкретные экземпляры {@link StepTemplate}, а не на определения шагов,
+ * что позволяет соединять независимо несколько экземпляров одного шага.
  */
 @Entity
 @Table(name = "step_edge")
@@ -20,13 +21,13 @@ public class StepEdge {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Исходящий шаг (откуда идёт стрелка). */
+    /** Исходящий экземпляр шага (откуда идёт стрелка). */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "from_step_id", nullable = false)
-    private StepDefinition fromStep;
+    @JoinColumn(name = "from_instance_id", nullable = false)
+    private StepTemplate fromInstance;
 
-    /** Входящий шаг (куда идёт стрелка). */
+    /** Входящий экземпляр шага (куда идёт стрелка). */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "to_step_id", nullable = false)
-    private StepDefinition toStep;
+    @JoinColumn(name = "to_instance_id", nullable = false)
+    private StepTemplate toInstance;
 }

@@ -15,15 +15,14 @@ public interface StepEdgeRepository extends JpaRepository<StepEdge, Long> {
 
     /**
      * Возвращает все рёбра шаблона для указанной транзакции.
-     * Запрос идёт по {@code fromStep}, т.к. оба конца ребра принадлежат одной транзакции.
      */
-    List<StepEdge> findAllByFromStepTransactionName(String transactionName);
+    List<StepEdge> findAllByFromInstanceStepTransactionName(String transactionName);
 
     /**
      * Удаляет все рёбра шаблона для указанной транзакции.
      * Вызывается перед сохранением нового шаблона (replace-стратегия).
      */
     @Modifying(clearAutomatically = true)
-    @Query("DELETE FROM StepEdge se WHERE se.fromStep.transactionName = :transactionName")
+    @Query("DELETE FROM StepEdge se WHERE se.fromInstance.step.transactionName = :transactionName")
     void deleteAllByTransactionName(@Param("transactionName") String transactionName);
 }

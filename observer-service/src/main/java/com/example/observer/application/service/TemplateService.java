@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -16,7 +17,7 @@ import java.util.stream.Collectors;
 
 /**
  * Сервис управления шаблонами транзакций.
- * Реализует логику чтения и сохранения позиций шагов и рёбер графа.
+ * Реализует логику чтения и сохранения экземпляров шагов и рёбер графа.
  */
 @Service
 @RequiredArgsConstructor
@@ -27,9 +28,7 @@ public class TemplateService implements TemplatePort {
     private final StepTemplateRepository stepTemplateRepo;
     private final StepEdgeRepository stepEdgeRepo;
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     @Override
     @Transactional(readOnly = true)
     public List<String> getAllTransactionNames() {
@@ -42,9 +41,8 @@ public class TemplateService implements TemplatePort {
     /**
      * {@inheritDoc}
      *
-     * <p>Возвращает все зарегистрированные шаги транзакции.
-     * Шаги, размещённые на канвасе, имеют заполненные координаты;
-     * неразмещённые — элементы палитры с {@code x = null, y = null}.
+     * <p>Возвращает все определения шагов транзакции (палитра) и все экземпляры на канвасе.
+     * Один шаг может быть представлен несколькими экземплярами.
      */
     @Override
     @Transactional(readOnly = true)
@@ -55,70 +53,64 @@ public class TemplateService implements TemplatePort {
 
         List<StepDefinition> allSteps = stepRepo.findAllByTransactionName(transactionName);
         List<StepTemplate> positioned = stepTemplateRepo.findAllByStepTransactionName(transactionName);
-        List<StepEdge> edges = stepEdgeRepo.findAllByFromStepTransactionName(transactionName);
+        List<StepEdge> edges = stepEdgeRepo.findAllByFromInstanceStepTransactionName(transactionName);
 
-        // Индекс stepId → позиция для быстрого поиска
-        Map<Long, StepTemplate> positionByStepId = positioned.stream()
-                .collect(Collectors.toMap(t -> t.getStep().getId(), t -> t));
+        List<StepDef> stepDefs = allSteps.stream()
+                .map(s -> new StepDef(s.getId(), s.getStepName(), s.getServiceName()))
+                .toList();
 
-        List<StepNode> stepNodes = allSteps.stream()
-                .map(step -> {
-                    StepTemplate pos = positionByStepId.get(step.getId());
-                    return new StepNode(
-                            step.getId(),
-                            step.getStepName(),
-                            step.getServiceName(),
-                            pos != null ? pos.getPosX() : null,
-                            pos != null ? pos.getPosY() : null
-                    );
-                })
+        List<StepInstance> instances = positioned.stream()
+                .map(t -> new StepInstance(
+                        t.getId(),
+                        t.getStep().getId(),
+                        t.getStep().getStepName(),
+                        t.getStep().getServiceName(),
+                        t.getPosX(),
+                        t.getPosY()
+                ))
                 .toList();
 
         List<Edge> edgeDtos = edges.stream()
-                .map(e -> new Edge(e.getFromStep().getId(), e.getToStep().getId()))
+                .map(e -> new Edge(e.getFromInstance().getId(), e.getToInstance().getId()))
                 .toList();
 
-        return Optional.of(new Template(transactionName, stepNodes, edgeDtos));
+        return Optional.of(new Template(transactionName, stepDefs, instances, edgeDtos));
     }
 
     /**
      * {@inheritDoc}
      *
      * <p>Стратегия: полное удаление предыдущего шаблона с последующей вставкой нового.
-     * Шаги, не вошедшие в команду, становятся элементами палитры.
+     * Рёбра удаляются явно перед экземплярами; FK ON DELETE CASCADE — дополнительная страховка.
+     * Для привязки рёбер к новым экземплярам используется клиентский {@code nodeId}.
      */
     @Override
     @Transactional
     public void saveTemplate(String transactionName, SaveCommand command) {
-        // Удаляем предыдущий шаблон
         stepEdgeRepo.deleteAllByTransactionName(transactionName);
         stepTemplateRepo.deleteAllByTransactionName(transactionName);
 
-        // Индекс stepId → StepDefinition для валидации входящих ID
         Map<Long, StepDefinition> stepById = stepRepo.findAllByTransactionName(transactionName)
                 .stream()
                 .collect(Collectors.toMap(StepDefinition::getId, s -> s));
 
-        // Сохраняем позиции шагов
-        List<StepTemplate> templates = command.steps().stream()
-                .filter(pos -> stepById.containsKey(pos.stepId()))
-                .map(pos -> {
-                    StepTemplate t = new StepTemplate();
-                    t.setStep(stepById.get(pos.stepId()));
-                    t.setPosX(pos.x());
-                    t.setPosY(pos.y());
-                    return t;
-                })
-                .toList();
-        stepTemplateRepo.saveAll(templates);
+        // Сохраняем экземпляры; строим карту nodeId → StepTemplate для последующей привязки рёбер
+        Map<String, StepTemplate> byNodeId = new LinkedHashMap<>();
+        for (InstancePosition pos : command.instances()) {
+            if (!stepById.containsKey(pos.stepId())) continue;
+            StepTemplate t = new StepTemplate();
+            t.setStep(stepById.get(pos.stepId()));
+            t.setPosX(pos.x());
+            t.setPosY(pos.y());
+            byNodeId.put(pos.nodeId(), stepTemplateRepo.save(t));
+        }
 
-        // Сохраняем рёбра
         List<StepEdge> edgeEntities = command.edges().stream()
-                .filter(e -> stepById.containsKey(e.fromStepId()) && stepById.containsKey(e.toStepId()))
+                .filter(e -> byNodeId.containsKey(e.fromNodeId()) && byNodeId.containsKey(e.toNodeId()))
                 .map(e -> {
                     StepEdge edge = new StepEdge();
-                    edge.setFromStep(stepById.get(e.fromStepId()));
-                    edge.setToStep(stepById.get(e.toStepId()));
+                    edge.setFromInstance(byNodeId.get(e.fromNodeId()));
+                    edge.setToInstance(byNodeId.get(e.toNodeId()));
                     return edge;
                 })
                 .toList();

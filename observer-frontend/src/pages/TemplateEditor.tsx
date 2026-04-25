@@ -15,13 +15,14 @@ import {
 import '@xyflow/react/dist/style.css'
 
 import StepNode, { type StepNodeData } from '../components/StepNode'
-import { getTemplate, saveTemplate, type TemplateStep } from '../api'
+import { getTemplate, saveTemplate, type StepDef, type StepInstance } from '../api'
 
 const nodeTypes = { step: StepNode }
 
 /**
  * Редактор шаблона транзакции.
- * Слева — палитра незакреплённых шагов. Справа — канвас React Flow.
+ * Слева — палитра всех зарегистрированных шагов (шаг можно перетащить несколько раз).
+ * Справа — канвас React Flow с экземплярами шагов.
  */
 export default function TemplateEditor() {
   const { name } = useParams<{ name: string }>()
@@ -30,7 +31,7 @@ export default function TemplateEditor() {
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([])
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
-  const [palette, setPalette] = useState<TemplateStep[]>([])
+  const [palette, setPalette] = useState<StepDef[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saveOk, setSaveOk] = useState(false)
@@ -45,13 +46,12 @@ export default function TemplateEditor() {
     if (!txName) return
     getTemplate(txName)
       .then(data => {
-        const positioned = data.steps.filter((s): s is TemplateStep & { x: number; y: number } => s.x !== null)
-        setNodes(positioned.map(stepToNode))
-        setPalette(data.steps.filter(s => s.x === null))
+        setNodes(data.instances.map(instanceToNode))
+        setPalette(data.steps)
         setEdges(data.edges.map(e => ({
-          id: `${e.fromStepId}-${e.toStepId}`,
-          source: String(e.fromStepId),
-          target: String(e.toStepId),
+          id: `${e.fromInstanceId}-${e.toInstanceId}`,
+          source: String(e.fromInstanceId),
+          target: String(e.toInstanceId),
         })))
       })
       .catch(() => setError('Не удалось загрузить шаблон'))
@@ -67,14 +67,14 @@ export default function TemplateEditor() {
 
   // ── Drag & drop из палитры ───────────────────────────────────────────────
 
-  const onDragStart = (e: React.DragEvent, step: TemplateStep) => {
+  const onDragStart = (e: React.DragEvent, step: StepDef) => {
     e.dataTransfer.setData('application/step', JSON.stringify(step))
-    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.effectAllowed = 'copy'
   }
 
   const onDragOver = (e: React.DragEvent) => {
     e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
+    e.dataTransfer.dropEffect = 'copy'
   }
 
   const onDrop = useCallback(
@@ -83,27 +83,23 @@ export default function TemplateEditor() {
       if (!rfInstance.current || !canvasRef.current) return
       const raw = e.dataTransfer.getData('application/step')
       if (!raw) return
-      const step: TemplateStep = JSON.parse(raw)
+      const step: StepDef = JSON.parse(raw)
       const bounds = canvasRef.current.getBoundingClientRect()
       const position = rfInstance.current.screenToFlowPosition({
         x: e.clientX - bounds.left,
         y: e.clientY - bounds.top,
       })
-      setNodes(nds => [...nds, stepToNode({ ...step, x: position.x, y: position.y })])
-      setPalette(prev => prev.filter(s => s.stepId !== step.stepId))
+      // Каждый drop создаёт новый экземпляр с уникальным ID
+      setNodes(nds => [...nds, {
+        id: crypto.randomUUID(),
+        type: 'step',
+        position,
+        data: { stepId: step.stepId, stepName: step.stepName, serviceName: step.serviceName },
+      }])
+      // Палитра не изменяется — шаг всегда доступен для повторного drop
     },
     [setNodes],
   )
-
-  // ── Удаление узла: возвращаем шаг в палитру ──────────────────────────────
-
-  const onNodesDelete = useCallback((deleted: Node[]) => {
-    const restored: TemplateStep[] = deleted.map(n => {
-      const d = n.data as StepNodeData
-      return { stepId: d.stepId, stepName: d.stepName, serviceName: d.serviceName, x: null, y: null }
-    })
-    setPalette(prev => [...prev, ...restored])
-  }, [])
 
   // ── Сохранение ───────────────────────────────────────────────────────────
 
@@ -113,14 +109,15 @@ export default function TemplateEditor() {
     setError(null)
     try {
       await saveTemplate(txName, {
-        steps: nodes.map(n => ({
+        instances: nodes.map(n => ({
+          nodeId: n.id,
           stepId: (n.data as StepNodeData).stepId,
           x: n.position.x,
           y: n.position.y,
         })),
         edges: edges.map(e => ({
-          fromStepId: Number(e.source),
-          toStepId: Number(e.target),
+          fromNodeId: e.source,
+          toNodeId: e.target,
         })),
       })
       setSaveOk(true)
@@ -171,16 +168,13 @@ export default function TemplateEditor() {
         {/* Палитра */}
         <div className="w-64 shrink-0 border-r border-gray-200 bg-gray-50 overflow-y-auto p-4">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
-            Доступные шаги
+            Шаги
           </p>
           {loading && (
             <p className="text-xs text-gray-400 text-center py-6">Загрузка...</p>
           )}
-          {!loading && palette.length === 0 && nodes.length === 0 && (
+          {!loading && palette.length === 0 && (
             <p className="text-xs text-gray-400 text-center py-6">Нет зарегистрированных шагов</p>
-          )}
-          {!loading && palette.length === 0 && nodes.length > 0 && (
-            <p className="text-xs text-gray-400 text-center py-6">Все шаги на канвасе</p>
           )}
           <div className="space-y-2">
             {palette.map(step => (
@@ -208,7 +202,6 @@ export default function TemplateEditor() {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
-            onNodesDelete={onNodesDelete}
             onInit={inst => { rfInstance.current = inst }}
             deleteKeyCode="Delete"
             fitView
@@ -222,11 +215,11 @@ export default function TemplateEditor() {
   )
 }
 
-function stepToNode(step: TemplateStep & { x: number; y: number }): Node {
+function instanceToNode(inst: StepInstance): Node {
   return {
-    id: String(step.stepId),
+    id: String(inst.instanceId),
     type: 'step',
-    position: { x: step.x, y: step.y },
-    data: { stepId: step.stepId, stepName: step.stepName, serviceName: step.serviceName },
+    position: { x: inst.x, y: inst.y },
+    data: { stepId: inst.stepId, stepName: inst.stepName, serviceName: inst.serviceName },
   }
 }

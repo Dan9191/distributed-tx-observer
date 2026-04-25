@@ -15,8 +15,7 @@ public interface TemplatePort {
     List<String> getAllTransactionNames();
 
     /**
-     * Возвращает шаблон транзакции: все зарегистрированные шаги с позициями
-     * (null, если шаг ещё не размещён на канвасе) и рёбра графа.
+     * Возвращает шаблон транзакции: определения шагов (палитра), экземпляры на канвасе и рёбра.
      *
      * @param transactionName название транзакции
      * @return шаблон, или {@code Optional.empty()} если транзакция не существует
@@ -24,29 +23,36 @@ public interface TemplatePort {
     Optional<Template> getTemplate(String transactionName);
 
     /**
-     * Сохраняет шаблон транзакции: позиции шагов и рёбра графа.
-     * Полностью заменяет предыдущий шаблон.
+     * Сохраняет шаблон транзакции. Полностью заменяет предыдущий шаблон.
      *
      * @param transactionName название транзакции
-     * @param command         новые позиции и рёбра
+     * @param command         новые экземпляры и рёбра
      */
     void saveTemplate(String transactionName, SaveCommand command);
 
-    /**
-     * Шаг с позицией на канвасе.
-     * Если {@code x} и {@code y} равны {@code null} — шаг ещё не размещён (элемент палитры).
-     */
-    record StepNode(Long stepId, String stepName, String serviceName, Double x, Double y) {}
+    /** Определение шага (элемент палитры). */
+    record StepDef(Long stepId, String stepName, String serviceName) {}
 
-    /** Направленное ребро между двумя шагами. */
-    record Edge(Long fromStepId, Long toStepId) {}
+    /**
+     * Конкретный экземпляр шага на канвасе.
+     * Один шаг может иметь несколько экземпляров с разными позициями.
+     */
+    record StepInstance(Long instanceId, Long stepId, String stepName, String serviceName,
+                        Double x, Double y) {}
+
+    /** Направленное ребро между двумя экземплярами. */
+    record Edge(Long fromInstanceId, Long toInstanceId) {}
 
     /** Полный шаблон транзакции. */
-    record Template(String transactionName, List<StepNode> steps, List<Edge> edges) {}
+    record Template(String transactionName, List<StepDef> steps,
+                    List<StepInstance> instances, List<Edge> edges) {}
 
-    /** Позиция одного шага для сохранения. */
-    record StepPosition(Long stepId, Double x, Double y) {}
+    /** Позиция одного экземпляра для сохранения. {@code nodeId} — клиентский ID узла React Flow. */
+    record InstancePosition(String nodeId, Long stepId, Double x, Double y) {}
+
+    /** Ребро в команде сохранения; ссылается на клиентские {@code nodeId}. */
+    record EdgeCommand(String fromNodeId, String toNodeId) {}
 
     /** Команда сохранения шаблона. */
-    record SaveCommand(List<StepPosition> steps, List<Edge> edges) {}
+    record SaveCommand(List<InstancePosition> instances, List<EdgeCommand> edges) {}
 }
