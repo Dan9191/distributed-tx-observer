@@ -8,12 +8,8 @@ cd "$SCRIPT_DIR"
 ./gradlew :observer-service:bootJar -x test
 
 echo "==> Building demo-service JAR..."
-cd "$SCRIPT_DIR/test-stand/demo-service"
-if [ -f "./gradlew" ]; then
-    ./gradlew bootJar -x test
-else
-    gradle bootJar -x test
-fi
+cd "$SCRIPT_DIR"
+./gradlew :demo-service:bootJar -x test
 
 echo "==> Building observer-frontend..."
 cd "$SCRIPT_DIR/observer-frontend"

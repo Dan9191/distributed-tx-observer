@@ -79,7 +79,9 @@ services:
 
   # ── Demo Service ─────────────────────────────────────────────────────────────
   demo-service:
-    build: ./demo-service
+    build:
+      context: ..
+      dockerfile: demo-service/Dockerfile
     container_name: observer-demo-service
     ports:
       - "8081:8081"
@@ -92,7 +94,7 @@ services:
       OBSERVER_SERVICE_URL: http://observer-service:8033
       LOKI_URL: http://loki:3100
     volumes:
-      - ./demo-service/build/libs/demo-service-0.0.1-SNAPSHOT.jar:/app/app.jar
+      - ../demo-service/build/libs/demo-service-0.0.1-SNAPSHOT.jar:/app/app.jar
 
 volumes:
   postgres_data:

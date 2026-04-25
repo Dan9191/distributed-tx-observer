@@ -1,3 +1,3 @@
 rootProject.name = "distributed-operation-observer"
 
-include("observer-service")
+include("observer-service", "demo-service")
