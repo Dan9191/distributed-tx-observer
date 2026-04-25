@@ -1,4 +1,4 @@
-package com.example.demo.config;
+package com.example.payment.config;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,26 +9,12 @@ import lombok.Data;
 
 /**
  * Конфигурация регистрации шагов в observer-service.
- *
- * <p>Читается из блока {@code observer:} в {@code application.yml}.
- * Группирует шаги по транзакции: одна транзакция — список stepName.</p>
- *
- * <pre>
- * observer:
- *   service-url: http://localhost:8033
- *   service-name: demo-service
- *   transactions:
- *     - name: CreateOrder
- *       steps:
- *         - ValidateCart
- *         - ChargePayment
- * </pre>
  */
-@ConfigurationProperties(prefix = "observer")
+@ConfigurationProperties(prefix = "payment")
 @Data
-public class ObserverProperties {
+public class PaymentProperties {
 
-    /** URL observer-service, куда POST-ятся шаги при старте. */
+    /** URL payment-service, куда POST-ятся шаги при старте. */
     private String serviceUrl;
 
     /** Имя текущего сервиса — записывается в поле serviceName каждого шага. */

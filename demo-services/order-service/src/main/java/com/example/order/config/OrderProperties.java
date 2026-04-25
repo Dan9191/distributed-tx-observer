@@ -1,4 +1,4 @@
-package com.example.demo.config;
+package com.example.order.config;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,27 +8,13 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import lombok.Data;
 
 /**
- * Конфигурация регистрации шагов в observer-service.
- *
- * <p>Читается из блока {@code observer:} в {@code application.yml}.
- * Группирует шаги по транзакции: одна транзакция — список stepName.</p>
- *
- * <pre>
- * observer:
- *   service-url: http://localhost:8033
- *   service-name: demo-service
- *   transactions:
- *     - name: CreateOrder
- *       steps:
- *         - ValidateCart
- *         - ChargePayment
- * </pre>
+ * Конфигурация регистрации шагов в order-service.
  */
-@ConfigurationProperties(prefix = "observer")
+@ConfigurationProperties(prefix = "order")
 @Data
-public class ObserverProperties {
+public class OrderProperties {
 
-    /** URL observer-service, куда POST-ятся шаги при старте. */
+    /** URL order-service, куда POST-ятся шаги при старте. */
     private String serviceUrl;
 
     /** Имя текущего сервиса — записывается в поле serviceName каждого шага. */

@@ -6,18 +6,21 @@ spring:
     name: order-service
 
 # Настройки регистрации шагов в order-service.
-observer:
+order:
   service-url: ${OBSERVER_SERVICE_URL:http://localhost:8033}
   service-name: order-service
   transactions:
     - name: CreateOrder
       steps:
-        - ValidateCart
-        - ReserveStock
-        - ChargePayment
-        - ConfirmOrder
-    - name: ProcessPayment
-      steps:
-        - ValidateCard
-        - AuthorizePayment
-        - CapturePayment
+        - StartOrder
+        - CallInventory
+        - CallPayment
+        - CallInventoryRelease
+        - CompleteOrderSuccess
+        - CompleteOrderByOutOfStock
+        - CompleteOrderByPaymentFailed
+
+services:
+  inventory-url: http://inventory-service:8084
+  payment-url: http://payment-service:8083
+  notification-url: http://notification-service:8085

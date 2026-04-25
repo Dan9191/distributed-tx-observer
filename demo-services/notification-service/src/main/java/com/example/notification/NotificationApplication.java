@@ -1,19 +1,18 @@
-package com.example.order;
+package com.example.notification;
 
-import com.example.order.config.OrderProperties;
-import com.example.order.config.ServiceUrlsProperties;
+import com.example.notification.config.NotificationProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 /**
  * Демонстрационный сервис для локального стенда.
- */
+ * */
 @SpringBootApplication
-@EnableConfigurationProperties({OrderProperties.class, ServiceUrlsProperties.class})
-public class OrderApplication {
+@EnableConfigurationProperties(NotificationProperties.class)
+public class NotificationApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(com.example.order.OrderApplication.class, args);
+        SpringApplication.run(NotificationApplication.class, args);
     }
 }

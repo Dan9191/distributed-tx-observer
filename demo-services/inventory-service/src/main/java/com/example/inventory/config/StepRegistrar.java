@@ -1,4 +1,4 @@
-package com.example.demo.config;
+package com.example.inventory.config;
 
 import java.util.List;
 import java.util.Map;
@@ -14,18 +14,13 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * Регистрирует шаги сервиса в observer-service при старте приложения.
- *
- * <p>Срабатывает однократно на событие {@link ApplicationReadyEvent}.
- * Список шагов читается из {@link ObserverProperties}.
- * Ошибка регистрации (observer-service недоступен) логируется предупреждением
- * и не прерывает запуск.</p>
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class StepRegistrar implements ApplicationListener<ApplicationReadyEvent> {
 
-    private final ObserverProperties properties;
+    private final InventoryProperties properties;
     private final RestClient.Builder restClientBuilder;
 
     @Override

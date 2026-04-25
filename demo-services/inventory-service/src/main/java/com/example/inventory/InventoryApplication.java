@@ -1,10 +1,9 @@
 package com.example.inventory;
 
+import com.example.inventory.config.InventoryProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-
-import com.example.demo.config.ObserverProperties;
 
 /**
  * Демонстрационный сервис для локального стенда.
@@ -13,7 +12,7 @@ import com.example.demo.config.ObserverProperties;
  * в observer-service, при вызове эндпоинтов /simulate/* пишет JSON-логи через MDC.</p>
  */
 @SpringBootApplication
-@EnableConfigurationProperties(ObserverProperties.class)
+@EnableConfigurationProperties(InventoryProperties.class)
 public class InventoryApplication {
 
     public static void main(String[] args) {

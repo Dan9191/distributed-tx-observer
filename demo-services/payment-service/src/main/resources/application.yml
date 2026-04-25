@@ -6,18 +6,10 @@ spring:
     name: payment-service
 
 # Настройки регистрации шагов в payment-service.
-observer:
+payment:
   service-url: ${OBSERVER_SERVICE_URL:http://localhost:8033}
   service-name: payment-service
   transactions:
     - name: CreateOrder
       steps:
-        - ValidateCart
-        - ReserveStock
         - ChargePayment
-        - ConfirmOrder
-    - name: ProcessPayment
-      steps:
-        - ValidateCard
-        - AuthorizePayment
-        - CapturePayment

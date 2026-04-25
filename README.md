@@ -133,6 +133,21 @@ docker compose ps
 - Observer API: http://localhost:8033/api/v1/transactions
 - Demo-сервис: http://localhost:8081
 
-примеры запросов
-$ curl -X POST "http://localhost:8081/simulate/create-order?scenario=payment-error"
-$ curl -X POST "http://localhost:8081/simulate/create-order?scenario=success"
+### Примеры запросов
+
+1. Успешный сценарий
+```
+curl -X POST "http://localhost:8081/simulate/create-order?scenario=success"
+```
+2. Нет товара (fail на inventory)
+```
+curl -X POST "http://localhost:8082/simulate/create-order?scenario=no-stock"
+```
+3. Ошибка оплаты + rollback
+```
+curl -X POST "http://localhost:8082/simulate/create-order?scenario=payment-fail"
+```
+4. Notification падает (но успех)
+```
+curl -X POST "http://localhost:8082/simulate/create-order?scenario=notify-fail"
+```

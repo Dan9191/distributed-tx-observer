@@ -5,19 +5,11 @@ spring:
   application:
     name: notification-service
 
-# Настройки регистрации шагов в payment-service.
-observer:
+# Настройки регистрации шагов в notification-service.
+notification:
   service-url: ${OBSERVER_SERVICE_URL:http://localhost:8033}
   service-name: notification-service
   transactions:
     - name: CreateOrder
       steps:
-        - ValidateCart
-        - ReserveStock
-        - ChargePayment
-        - ConfirmOrder
-    - name: ProcessPayment
-      steps:
-        - ValidateCard
-        - AuthorizePayment
-        - CapturePayment
+        - SendNotification
