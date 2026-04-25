@@ -49,7 +49,7 @@ public class TemplateController {
                                 g.getX(), g.getY(), g.getWidth(), g.getHeight()))
                         .toList(),
                 request.getEdges().stream()
-                        .map(e -> new TemplatePort.EdgeCommand(e.getFromNodeId(), e.getToNodeId()))
+                        .map(e -> new TemplatePort.EdgeCommand(e.getFromNodeId(), e.getToNodeId(), e.getStyle()))
                         .toList()
         );
         templatePort.saveTemplate(name, command);
@@ -85,6 +85,7 @@ public class TemplateController {
         r.setEdges(t.edges().stream().map(e -> {
             TemplateResponse.EdgeDto dto = new TemplateResponse.EdgeDto();
             dto.setFromInstanceId(e.fromInstanceId()); dto.setToInstanceId(e.toInstanceId());
+            dto.setStyle(e.style());
             return dto;
         }).toList());
 

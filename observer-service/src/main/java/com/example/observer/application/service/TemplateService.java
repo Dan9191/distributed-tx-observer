@@ -70,7 +70,7 @@ public class TemplateService implements TemplatePort {
                 .toList();
 
         List<Edge> edgeDtos = edges.stream()
-                .map(e -> new Edge(e.getFromInstance().getId(), e.getToInstance().getId()))
+                .map(e -> new Edge(e.getFromInstance().getId(), e.getToInstance().getId(), e.getStyle()))
                 .toList();
 
         return Optional.of(new Template(transactionName, stepDefs, instances, groupInstances, edgeDtos));
@@ -122,6 +122,7 @@ public class TemplateService implements TemplatePort {
                     StepEdge edge = new StepEdge();
                     edge.setFromInstance(byNodeId.get(e.fromNodeId()));
                     edge.setToInstance(byNodeId.get(e.toNodeId()));
+                    edge.setStyle(e.style() != null ? e.style() : "default");
                     return edge;
                 })
                 .toList();

@@ -30,4 +30,8 @@ public class StepEdge {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "to_instance_id", nullable = false)
     private StepTemplate toInstance;
+
+    /** Стиль линии ребра: default, straight, smoothstep, dashed, dotted. */
+    @Column(name = "style", nullable = false)
+    private String style = "default";
 }

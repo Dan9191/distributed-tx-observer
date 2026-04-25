@@ -32,7 +32,7 @@ public interface TemplatePort {
                          Double x, Double y, Double width, Double height) {}
 
     /** Направленное ребро между двумя экземплярами. */
-    record Edge(Long fromInstanceId, Long toInstanceId) {}
+    record Edge(Long fromInstanceId, Long toInstanceId, String style) {}
 
     /** Полный шаблон транзакции. */
     record Template(String transactionName, List<StepDef> steps,
@@ -46,7 +46,7 @@ public interface TemplatePort {
                          Double x, Double y, Double width, Double height) {}
 
     /** Ребро в команде сохранения; ссылается на клиентские nodeId. */
-    record EdgeCommand(String fromNodeId, String toNodeId) {}
+    record EdgeCommand(String fromNodeId, String toNodeId, String style) {}
 
     /** Команда сохранения шаблона. */
     record SaveCommand(List<InstancePosition> instances, List<GroupPosition> groups,

@@ -6,6 +6,7 @@ import {
   Controls,
   useNodesState,
   useEdgesState,
+  MarkerType,
   type Node,
   type Edge,
 } from '@xyflow/react'
@@ -13,9 +14,11 @@ import '@xyflow/react/dist/style.css'
 
 import StepNode, { type StepNodeData } from '../components/StepNode'
 import GroupNode from '../components/GroupNode'
+import CustomEdge from '../components/CustomEdge'
 import { getTemplate, visualize, type VisualizationStep, type VisualizationResponse, type LogEntry, type GroupInstance } from '../api'
 
 const nodeTypes = { step: StepNode, group: GroupNode }
+const edgeTypes = { custom: CustomEdge }
 
 const LOG_LEVEL_COLOR: Record<string, string> = {
   info:  '#639922',
@@ -64,8 +67,11 @@ export default function Visualizer() {
         setNodes([...groupNodes, ...stepNodes])
         const initEdges: Edge[] = data.edges.map(e => ({
           id: `${e.fromInstanceId}-${e.toInstanceId}`,
+          type: 'custom',
           source: String(e.fromInstanceId),
           target: String(e.toInstanceId),
+          markerEnd: { type: MarkerType.ArrowClosed },
+          data: { edgeStyle: e.style ?? 'default' },
         }))
         onEdgesChange(initEdges.map(e => ({ type: 'add' as const, item: e })))
       })
@@ -174,6 +180,7 @@ export default function Visualizer() {
             nodes={nodes}
             edges={edges}
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onNodeClick={onNodeClick}

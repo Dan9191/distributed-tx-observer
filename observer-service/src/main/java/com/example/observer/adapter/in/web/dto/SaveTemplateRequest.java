@@ -45,5 +45,6 @@ public class SaveTemplateRequest {
     public static class EdgeDto {
         @NotNull private String fromNodeId;
         @NotNull private String toNodeId;
+        private String style;
     }
 }

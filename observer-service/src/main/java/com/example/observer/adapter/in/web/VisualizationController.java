@@ -68,6 +68,7 @@ public class VisualizationController {
     private VisualizationResponse.EdgeDto toEdgeDto(TemplatePort.Edge edge) {
         VisualizationResponse.EdgeDto dto = new VisualizationResponse.EdgeDto();
         dto.setFromInstanceId(edge.fromInstanceId()); dto.setToInstanceId(edge.toInstanceId());
+        dto.setStyle(edge.style());
         return dto;
     }
 }

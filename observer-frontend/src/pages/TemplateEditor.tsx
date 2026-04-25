@@ -7,6 +7,7 @@ import {
   addEdge,
   useNodesState,
   useEdgesState,
+  MarkerType,
   type Node,
   type Edge,
   type Connection,
@@ -16,9 +17,11 @@ import '@xyflow/react/dist/style.css'
 
 import StepNode, { type StepNodeData } from '../components/StepNode'
 import GroupNode, { type GroupNodeData } from '../components/GroupNode'
+import CustomEdge from '../components/CustomEdge'
 import { getTemplate, saveTemplate, type StepDef, type StepInstance, type GroupInstance } from '../api'
 
 const nodeTypes = { step: StepNode, group: GroupNode }
+const edgeTypes = { custom: CustomEdge }
 
 const DEFAULT_GROUP_COLOR = '#6366f1'
 
@@ -55,8 +58,11 @@ export default function TemplateEditor() {
         setPalette(data.steps)
         setEdges(data.edges.map(e => ({
           id: `${e.fromInstanceId}-${e.toInstanceId}`,
+          type: 'custom',
           source: String(e.fromInstanceId),
           target: String(e.toInstanceId),
+          markerEnd: { type: MarkerType.ArrowClosed },
+          data: { edgeStyle: e.style ?? 'default' },
         })))
       })
       .catch(() => setError('Не удалось загрузить шаблон'))
@@ -66,7 +72,12 @@ export default function TemplateEditor() {
   // ── Соединение узлов ─────────────────────────────────────────────────────
 
   const onConnect = useCallback(
-    (connection: Connection) => setEdges(eds => addEdge(connection, eds)),
+    (connection: Connection) => setEdges(eds => addEdge({
+      ...connection,
+      type: 'custom',
+      markerEnd: { type: MarkerType.ArrowClosed },
+      data: { edgeStyle: 'default' },
+    }, eds)),
     [setEdges],
   )
 
@@ -153,7 +164,11 @@ export default function TemplateEditor() {
           width: (n.measured?.width ?? n.width ?? 200) as number,
           height: (n.measured?.height ?? n.height ?? 150) as number,
         })),
-        edges: edges.map(e => ({ fromNodeId: e.source, toNodeId: e.target })),
+        edges: edges.map(e => ({
+          fromNodeId: e.source,
+          toNodeId: e.target,
+          style: (e.data as { edgeStyle?: string })?.edgeStyle ?? 'default',
+        })),
       })
       setSaveOk(true)
       setTimeout(() => setSaveOk(false), 2000)
@@ -252,6 +267,7 @@ export default function TemplateEditor() {
             nodes={nodes}
             edges={edges}
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}

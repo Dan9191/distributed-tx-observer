@@ -32,6 +32,7 @@ export interface GroupInstance {
 export interface TemplateEdge {
   fromInstanceId: number
   toInstanceId: number
+  style: string
 }
 
 export interface TemplateResponse {
@@ -45,7 +46,7 @@ export interface TemplateResponse {
 export interface SaveTemplatePayload {
   instances: { nodeId: string; stepId: number; x: number; y: number }[]
   groups: { nodeId: string; label: string; color: string; x: number; y: number; width: number; height: number }[]
-  edges: { fromNodeId: string; toNodeId: string }[]
+  edges: { fromNodeId: string; toNodeId: string; style: string }[]
 }
 
 // ── Запросы ─────────────────────────────────────────────────────────────────

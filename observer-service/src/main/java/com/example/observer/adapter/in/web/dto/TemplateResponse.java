@@ -54,5 +54,6 @@ public class TemplateResponse {
     public static class EdgeDto {
         private Long fromInstanceId;
         private Long toInstanceId;
+        private String style;
     }
 }
