@@ -21,6 +21,7 @@ import {
   getTemplate, visualize,
   type VisualizationStep, type VisualizationResponse, type LogEntry, type GroupInstance,
 } from '../api'
+import { generateHtmlReport } from '../lib/reportGenerator'
 
 const nodeTypes = { step: StepNode, group: GroupNode, start: StartNode, end: EndNode }
 const edgeTypes = { custom: CustomEdge }
@@ -49,6 +50,7 @@ export default function Visualizer() {
 
   const [operationId, setOperationId] = useState('')
   const [vizData, setVizData] = useState<VisualizationResponse | null>(null)
+  const [templateGroups, setTemplateGroups] = useState<GroupInstance[]>([])
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
 
   const [templateLoading, setTemplateLoading] = useState(true)
@@ -64,6 +66,7 @@ export default function Visualizer() {
         const groupNodes = data.groups.map(groupToNode)
         const stepNodes = data.instances.map(inst => toNode(inst, undefined))
         setNodes([...groupNodes, ...stepNodes])
+        setTemplateGroups(data.groups)
         const initEdges: Edge[] = data.edges.map(e => ({
           id: `${e.fromInstanceId}-${e.toInstanceId}`,
           type: 'custom',
@@ -148,6 +151,24 @@ export default function Visualizer() {
     }
   }
 
+  const handleExport = () => {
+    if (!vizData) return
+    const html = generateHtmlReport(
+      txName,
+      vizData.operationId,
+      vizData.steps,
+      templateGroups,
+      vizData.edges,
+    )
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href     = url
+    a.download = `${txName}-${vizData.operationId.slice(0, 8)}.html`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
     // Клик только по step-узлам (маркеры и группы логов не имеют)
     if (node.type !== 'step') return
@@ -194,6 +215,16 @@ export default function Visualizer() {
           >
             {vizLoading ? 'Загрузка...' : 'Визуализировать'}
           </button>
+          {vizData && (
+            <button
+              onClick={handleExport}
+              className="px-4 py-2 border border-gray-300 text-gray-600 rounded-md text-sm
+                         hover:bg-gray-50 transition-colors"
+              title="Выгрузить HTML-отчёт"
+            >
+              Экспорт HTML
+            </button>
+          )}
         </div>
       </div>
 
