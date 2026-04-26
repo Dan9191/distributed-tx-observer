@@ -315,6 +315,8 @@ function LogPanel({ step, onClose }: { step: VisualizationStep; onClose: () => v
 }
 
 function LogEntryRow({ entry }: { entry: LogEntry }) {
+  const extraFields = Object.entries(entry.fields ?? {})
+
   return (
     <div className="px-4 py-3 border-b border-gray-100 text-sm">
       <div className="flex items-center gap-2 mb-1">
@@ -324,6 +326,16 @@ function LogEntryRow({ entry }: { entry: LogEntry }) {
         </span>
       </div>
       <p className="text-gray-700 leading-relaxed break-words">{entry.message}</p>
+      {extraFields.length > 0 && (
+        <div className="mt-2 rounded bg-gray-50 px-2 py-1.5 font-mono text-xs text-gray-500 space-y-0.5">
+          {extraFields.map(([k, v]) => (
+            <div key={k} className="flex gap-1 min-w-0">
+              <span className="text-gray-400 shrink-0">{k}:</span>
+              <span className="text-gray-600 break-all">{v}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

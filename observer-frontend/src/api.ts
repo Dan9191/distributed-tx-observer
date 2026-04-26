@@ -74,6 +74,7 @@ export interface LogEntry {
   timestamp: string
   level: string
   message: string
+  fields: Record<string, string>
 }
 
 export interface VisualizationStep {

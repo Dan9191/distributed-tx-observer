@@ -54,8 +54,10 @@ public class VisualizationController {
 
     private VisualizationResponse.LogEntryDto toLogEntry(LogQueryPort.LogEntry entry) {
         VisualizationResponse.LogEntryDto dto = new VisualizationResponse.LogEntryDto();
-        dto.setTimestamp(entry.timestamp()); dto.setLevel(entry.level().name().toLowerCase());
+        dto.setTimestamp(entry.timestamp());
+        dto.setLevel(entry.level().name().toLowerCase());
         dto.setMessage(entry.message());
+        dto.setFields(entry.fields());
         return dto;
     }
 

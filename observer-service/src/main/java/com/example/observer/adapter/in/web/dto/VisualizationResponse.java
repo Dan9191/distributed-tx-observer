@@ -3,6 +3,7 @@ package com.example.observer.adapter.in.web.dto;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Ответ эндпоинта {@code GET /api/v1/visualize}.
@@ -35,6 +36,8 @@ public class VisualizationResponse {
         private String timestamp;
         private String level;
         private String message;
+        /** Все остальные поля JSON-строки лога (MDC и прочие). */
+        private Map<String, String> fields;
     }
 
     @Data

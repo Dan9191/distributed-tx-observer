@@ -4,6 +4,7 @@ import com.example.observer.domain.model.LogLevel;
 
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashMap;
 
 /**
  * Исходящий порт: получение структурированных логов из внешнего хранилища.
@@ -32,6 +33,7 @@ public interface LogQueryPort {
      * @param timestamp метка времени в формате ISO-8601 (поле {@code @timestamp})
      * @param level     уровень серьёзности
      * @param message   текст сообщения
+     * @param fields    все остальные поля JSON-строки лога (MDC и прочие)
      */
-    record LogEntry(String timestamp, LogLevel level, String message) {}
+    record LogEntry(String timestamp, LogLevel level, String message, Map<String, String> fields) {}
 }

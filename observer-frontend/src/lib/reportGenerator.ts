@@ -217,7 +217,7 @@ ${badge}
           stepName:    s.stepName,
           serviceName: s.serviceName,
           logLevel:    s.logLevel,
-          logs:        s.logs.map(l => ({ ts: l.timestamp, lvl: l.level, msg: l.message })),
+          logs:        s.logs.map(l => ({ ts: l.timestamp, lvl: l.level, msg: l.message, flds: l.fields ?? {} })),
         }]),
     ),
   )
@@ -417,9 +417,20 @@ function selectStep(id){
     entries.innerHTML = '<div class="no-logs">Логов не найдено</div>';
   } else {
     entries.innerHTML = step.logs.map(function(l){
+      var flds = l.flds ? Object.entries(l.flds) : [];
+      var fldsHtml = flds.length === 0 ? '' :
+        '<div style="margin-top:6px;background:#f9fafb;border-radius:4px;padding:6px 8px;'+
+        'font-family:ui-monospace,SFMono-Regular,monospace;font-size:11px;color:#6b7280">'+
+        flds.map(function(kv){
+          return '<div style="display:flex;gap:4px;min-width:0">'+
+            '<span style="color:#9ca3af;flex-shrink:0">'+e(String(kv[0]))+':</span>'+
+            '<span style="color:#374151;word-break:break-all">'+e(String(kv[1]))+'</span>'+
+            '</div>';
+        }).join('')+'</div>';
       return '<div class="log-entry">'+
         '<div class="log-row"><span class="log-ts">'+e(fmt(l.ts))+'</span>'+badgeHtml(l.lvl,false)+'</div>'+
         '<div class="log-msg">'+e(l.msg)+'</div>'+
+        fldsHtml+
       '</div>';
     }).join('');
   }

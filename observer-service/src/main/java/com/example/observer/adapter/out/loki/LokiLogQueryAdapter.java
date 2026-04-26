@@ -12,8 +12,10 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Исходящий адаптер: запрашивает структурированные логи из Loki HTTP API.
@@ -136,8 +138,11 @@ public class LokiLogQueryAdapter implements LogQueryPort {
         return byStep;
     }
 
+    private static final Set<String> SKIP_FIELDS = Set.of("@timestamp", "level", "message");
+
     /**
      * Парсит одну JSON-строку лога и добавляет её в map, если поле {@code stepName} присутствует.
+     * Все поля, кроме {@code @timestamp}, {@code level} и {@code message}, сохраняются в {@code fields}.
      */
     private void parseLogLine(String logLine, Map<String, List<LogEntry>> accumulator) {
         try {
@@ -146,12 +151,19 @@ public class LokiLogQueryAdapter implements LogQueryPort {
             String stepName = json.path("stepName").asText(null);
             if (stepName == null || stepName.isBlank()) return;
 
-            LogLevel level = LogLevel.from(json.path("level").asText());
-            String message  = json.path("message").asText("");
-            String timestamp = json.path("@timestamp").asText("");
+            LogLevel level    = LogLevel.from(json.path("level").asText());
+            String message    = json.path("message").asText("");
+            String timestamp  = json.path("@timestamp").asText("");
+
+            Map<String, String> fields = new LinkedHashMap<>();
+            json.fields().forEachRemaining(f -> {
+                if (!SKIP_FIELDS.contains(f.getKey())) {
+                    fields.put(f.getKey(), f.getValue().asText(""));
+                }
+            });
 
             accumulator.computeIfAbsent(stepName, k -> new ArrayList<>())
-                    .add(new LogEntry(timestamp, level, message));
+                    .add(new LogEntry(timestamp, level, message, fields));
         } catch (Exception e) {
             log.debug("Could not parse log line from Loki response: {}", logLine);
         }
