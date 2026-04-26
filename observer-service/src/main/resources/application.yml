@@ -16,6 +16,12 @@ spring:
 server:
   port: 8033
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: prometheus,health
+
 loki:
   base-url: ${LOKI_BASE_URL:http://localhost:3100}
   # LogQL stream selector: ограничивает набор потоков перед фильтрацией.

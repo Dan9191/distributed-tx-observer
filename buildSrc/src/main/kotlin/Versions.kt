@@ -13,7 +13,9 @@ object Libs {
     const val SPRING_BOOT_WEB        = "org.springframework.boot:spring-boot-starter-web"
     const val SPRING_BOOT_DATA_JPA   = "org.springframework.boot:spring-boot-starter-data-jpa"
     const val SPRING_BOOT_VALIDATION = "org.springframework.boot:spring-boot-starter-validation"
-    const val SPRING_BOOT_FLYWAY = "org.springframework.boot:spring-boot-starter-flyway"
+    const val SPRING_BOOT_FLYWAY     = "org.springframework.boot:spring-boot-starter-flyway"
+    const val SPRING_BOOT_ACTUATOR   = "org.springframework.boot:spring-boot-starter-actuator"
+    const val MICROMETER_PROMETHEUS  = "io.micrometer:micrometer-registry-prometheus"
 
     // База данных
     const val POSTGRESQL        = "org.postgresql:postgresql"

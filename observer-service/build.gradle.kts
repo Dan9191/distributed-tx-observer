@@ -11,4 +11,6 @@ dependencies {
     runtimeOnly(Libs.FLYWAY_POSTGRESQL)
     runtimeOnly(Libs.POSTGRESQL)
     implementation(Libs.JACKSON_DATABIND)
+    implementation(Libs.SPRING_BOOT_ACTUATOR)
+    runtimeOnly(Libs.MICROMETER_PROMETHEUS)
 }

@@ -1,0 +1,120 @@
+{
+  "annotations": { "list": [] },
+  "description": "Просмотр логов сервисов из Loki",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "fillOpacity": 20, "lineWidth": 1 }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "ERROR" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#d44a3a", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "WARN" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#e5ac0e", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "INFO" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#7eb26d", "mode": "fixed" } }]
+          }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "sum by (level) (count_over_time({job=~\"$service\", level=~\"$level\"}[$__interval]))",
+          "legendFormat": "{{level}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Объём логов по уровню",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 20, "w": 24, "x": 0, "y": 8 },
+      "id": 2,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": false
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{job=~\"$service\", level=~\"$level\"}",
+          "refId": "A"
+        }
+      ],
+      "title": "Лог-поток",
+      "type": "logs"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["logs", "loki"],
+  "templating": {
+    "list": [
+      {
+        "allValue": ".+",
+        "current": { "text": "All", "value": "$__all" },
+        "includeAll": true,
+        "label": "Сервис",
+        "multi": true,
+        "name": "service",
+        "options": [
+          { "selected": true,  "text": "All",                  "value": "$__all" },
+          { "selected": false, "text": "order-service",        "value": "order-service" },
+          { "selected": false, "text": "payment-service",      "value": "payment-service" },
+          { "selected": false, "text": "inventory-service",    "value": "inventory-service" },
+          { "selected": false, "text": "notification-service", "value": "notification-service" }
+        ],
+        "query": "order-service,payment-service,inventory-service,notification-service",
+        "type": "custom"
+      },
+      {
+        "allValue": ".+",
+        "current": { "text": "All", "value": "$__all" },
+        "includeAll": true,
+        "label": "Уровень",
+        "multi": true,
+        "name": "level",
+        "options": [
+          { "selected": true,  "text": "All",   "value": "$__all" },
+          { "selected": false, "text": "INFO",  "value": "INFO" },
+          { "selected": false, "text": "WARN",  "value": "WARN" },
+          { "selected": false, "text": "ERROR", "value": "ERROR" }
+        ],
+        "query": "INFO,WARN,ERROR",
+        "type": "custom"
+      }
+    ]
+  },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Service Logs",
+  "uid": "service-logs-001",
+  "version": 1,
+  "weekStart": ""
+}
