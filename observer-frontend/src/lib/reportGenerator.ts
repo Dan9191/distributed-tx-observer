@@ -129,6 +129,20 @@ export function generateHtmlReport(
 
   const activeIds = new Set(vis.filter(s => s.logLevel !== 'none').map(s => s.instanceId))
 
+  // Цвет узла — точная копия логики из Visualizer.tsx
+  function nodeColor(s: VisualizationStep): string {
+    const nt = s.nodeType ?? 'step'
+    if (nt === 'start') {
+      return edges.some(e => e.fromInstanceId === s.instanceId && activeIds.has(e.toInstanceId))
+        ? NODE_COLOR.info : NODE_COLOR.none
+    }
+    if (nt === 'end') {
+      return edges.some(e => e.toInstanceId === s.instanceId && activeIds.has(e.fromInstanceId))
+        ? NODE_COLOR.info : NODE_COLOR.none
+    }
+    return NODE_COLOR[s.logLevel] ?? NODE_COLOR.none
+  }
+
   // ── Groups ────────────────────────────────────────────────────────────────
   const groupsHtml = groups.map(g => {
     const left = g.x + off.x
@@ -145,8 +159,7 @@ box-sizing:border-box;z-index:0">
     const left  = s.x! + off.x
     const top   = s.y! + off.y
     const nt    = s.nodeType ?? 'step'
-    const active = activeIds.has(s.instanceId)
-    const color = active ? NODE_COLOR[s.logLevel] : NODE_COLOR.none
+    const color = nodeColor(s)
     const { w } = nodeSize(nt)
     const clickable = nt === 'step' && s.logs.length >= 0
 
@@ -310,11 +323,11 @@ body{font-family:${FONT};background:#f8fafc;color:#1e293b;height:100vh;overflow:
     <div id="canvas" style="width:${canvasW}px;height:${canvasH}px">
       <svg>
         <defs>
-          <marker id="arrow-default" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="strokeWidth">
-            <path d="M0,0 L0,10 L10,5 Z" fill="#94a3b8"/>
+          <marker id="arrow-default" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0,0 L10,5 L0,10 Z" fill="#94a3b8"/>
           </marker>
-          <marker id="arrow-active" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="strokeWidth">
-            <path d="M0,0 L0,10 L10,5 Z" fill="#3b82f6"/>
+          <marker id="arrow-active" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0,0 L10,5 L0,10 Z" fill="#3b82f6"/>
           </marker>
         </defs>
         ${svgPaths}
